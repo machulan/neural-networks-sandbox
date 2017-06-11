@@ -196,8 +196,12 @@ def make_toolbar(root):
 
 root = Tk()
 root.title("Neural network image processing")
-root.state("normal") # normal, iconic, or withdrawn
-root.wm_attributes('-zoomed', 1)
+
+if OS_NAME == 'nt':
+    root.state('zoomed')
+elif OS_NAME == 'posix':
+    root.state("normal") # normal, iconic, or withdrawn
+    root.wm_attributes('-zoomed', 1)
 # root.state("normal")
 root.resizable(width=TRUE, height=TRUE)
 
