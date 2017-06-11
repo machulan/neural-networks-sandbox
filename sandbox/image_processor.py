@@ -100,7 +100,7 @@ print(img.getpixel((1, 0)))
 image_data = img.getdata()
 print(list(image_data)[:10])
 
-img.show()
+# img.show()
 # bm = img.tobitmap()
 
 
