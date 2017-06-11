@@ -41,6 +41,7 @@ def open_image():
 
     global first_image
     first_image = Image.open(filename)
+    print('Image', filename.rpartition('/')[2], 'opened')
 
     # print(image.size)
     image = ImageTk.PhotoImage(first_image)
@@ -77,9 +78,14 @@ def save_image():
 
     second_image.save(filename)
 
+    print('Image', filename.rpartition('/')[2], 'saved')
+
 
 def handle_image():
     print('handle_image_button pressed')
+
+    if first_image is None:
+        return
 
     global second_image
 
@@ -114,7 +120,7 @@ def make_first_canvas(root):
     first_canvas.config(xscrollcommand=xscrollbar.set)
     xscrollbar.pack(side=BOTTOM, fill=X)
 
-    first_canvas.pack(side=LEFT, expand=YES, fill=BOTH, padx=50, pady=50)
+    first_canvas.pack(side=LEFT, expand=YES, fill=BOTH, padx=20, pady=20)
 
     # first_canvas.config(width=100)
 
@@ -134,7 +140,7 @@ def make_second_canvas(root):
     second_canvas.config(xscrollcommand=xscrollbar.set)
     xscrollbar.pack(side=BOTTOM, fill=X)
 
-    second_canvas.pack(side=LEFT, expand=YES, fill=BOTH, padx=50, pady=50)
+    second_canvas.pack(side=LEFT, expand=YES, fill=BOTH, padx=20, pady=20)
 
 
 class ToolbarButton(Button):
@@ -152,7 +158,7 @@ class ToolbarButton(Button):
 
 
 def make_background(root):
-    bg_path = '../neural-networks-sandbox/sandbox/gradient.png'
+    bg_path = '../neural-networks-sandbox/resourses/gradient.png'
     bi = PhotoImage(file=bg_path)
     # blabel = Label(root, bg='#9AF')
     blabel = Label(root, image=bi)  # , text='asd')  # , bg='#9AF')
