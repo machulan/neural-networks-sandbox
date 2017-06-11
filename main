@@ -3,6 +3,8 @@ from tkinter import *
 from tkinter.filedialog import askopenfile, askopenfilename, asksaveasfilename
 from PIL import Image, ImageDraw, ImageFilter, ImageEnhance, ImageTk
 
+import image_handler
+
 first_image = None
 second_image = None
 
@@ -83,7 +85,7 @@ def handle_image():
 
     # second_image = None
 
-    second_image = Image.open('../neural-networks-sandbox/images/doctorwho.jpg')
+    second_image = image_handler.handle_image(first_image)
     # second_image.show()
 
     # print(image.size)
