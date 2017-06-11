@@ -4,6 +4,16 @@ from keras.layers import Input, Dense  # the two types of neural network layer w
 from keras.utils import np_utils  # utilities for one-hot encoding of ground truth values
 from keras.backend import clear_session
 
+(X_train, y_train), (X_test, y_test) = mnist.load_data()
+# print(len(X_train), len(y_train))
+X = X_train[0]
+print(X)
+print(len(X), len(X[0]))
+
+# print(X_train[:5])
+# print(y_train[:5]) # [5 0 4 1 9]
+exit()
+
 batch_size = 128  # in each iteration we consider 128 training examples at once
 # num_epochs = 20  # we iterate twenty times over the entire training set
 num_epochs = 1

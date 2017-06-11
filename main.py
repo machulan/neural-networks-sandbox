@@ -3,6 +3,7 @@ from tkinter import *
 from tkinter.filedialog import askopenfile, askopenfilename, asksaveasfilename
 from PIL import Image, ImageDraw, ImageFilter, ImageEnhance, ImageTk
 
+
 import image_handler
 from resourses.constants import *
 
@@ -46,6 +47,8 @@ def open_image():
 
     # print(image.size)
     image = ImageTk.PhotoImage(first_image)
+
+
     # print(image.width(), image.height())
 
     first_canvas.delete(ALL)
@@ -193,7 +196,9 @@ def make_toolbar(root):
 
 root = Tk()
 root.title("Neural network image processing")
-root.state("zoomed")
+root.state("normal") # normal, iconic, or withdrawn
+root.wm_attributes('-zoomed', 1)
+# root.state("normal")
 root.resizable(width=TRUE, height=TRUE)
 
 make_background(root)

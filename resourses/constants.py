@@ -4,9 +4,9 @@ OPENFILE_INITIALDIR_WINDOWS = r'C:\Users\User\PycharmProjects\neural-networks-sa
 SAVEFILE_INITIALDIR_WINDOWS = r'C:\Users\User\PycharmProjects\neural-networks-sandbox\images'
 BACKGROUND_IMAGE_PATH_WINDOWS = '../neural-networks-sandbox/resourses/gradient.png'
 
-OPENFILE_INITIALDIR_LINUX = r'.'
-SAVEFILE_INITIALDIR_LINUX = r'.'
-BACKGROUND_IMAGE_PATH_LINUX = '../neural-networks-sandbox/resourses/gradient.png'
+OPENFILE_INITIALDIR_LINUX = r'/home/nikitaubuntu1604/PycharmProjects/Coursework3/images'
+SAVEFILE_INITIALDIR_LINUX = r'/home/nikitaubuntu1604/PycharmProjects/Coursework3/images'
+BACKGROUND_IMAGE_PATH_LINUX = '../Coursework3/resourses/gradient.png'
 
 print('Your OS is', os.name)
 

@@ -21,7 +21,7 @@ def handle_image(image):
     print_image_data(image)
 
 
-    stub = Image.open('../neural-networks-sandbox/images/doctorwho.jpg')
+    # stub = Image.open('../neural-networks-sandbox/images/doctorwho.jpg')
 
     stub = image.resize((image.width * 2, image.height * 2))
 
