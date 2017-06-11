@@ -1,0 +1,25 @@
+from PIL import Image, ImageDraw, ImageFilter
+
+Image :
+
+new()
+open()
+save()
+crop((x1, y1, x2, y2))
+transpose(Image.ROTATE_180)
+paste(img_to_paste, (x1, y1, x2, y2))
+split() # split into red, green and blue parts
+resize((new_width, new_height))
+rotate(angle)
+transpose(Image.FLIP_TOP_BOTTOM)
+convert('L') # 'RGB'
+filter(ImageFilter.DETAIL)
+
+getpixel((x, y))
+putpixel((x, y), (r, g, b))
+getdata() # list(img.getdata()) returns list of pixels
+
+size # (width, height)
+format # PNG
+mode # RGB
+info # {}
