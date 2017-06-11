@@ -4,6 +4,7 @@ from tkinter.filedialog import askopenfile, askopenfilename, asksaveasfilename
 from PIL import Image, ImageDraw, ImageFilter, ImageEnhance, ImageTk
 
 import image_handler
+from resourses.constants import *
 
 first_image = None
 second_image = None
@@ -31,7 +32,7 @@ def open_image():
 
     global first_canvas
 
-    filename = askopenfilename(initialdir=r'C:\Users\User\PycharmProjects\neural-networks-sandbox\images',
+    filename = askopenfilename(initialdir=OPENFILE_INITIALDIR,
                                initialfile='image.png',
                                title='Открыть изображение', filetypes=[('png files', '.png'), ('jpg files', '.jpg')],
                                defaultextension='.png')
@@ -65,7 +66,7 @@ def save_image():
 
     global second_canvas
 
-    filename = asksaveasfilename(initialdir=r'C:\Users\User\PycharmProjects\neural-networks-sandbox\images',
+    filename = asksaveasfilename(initialdir=SAVEFILE_INITIALDIR,
                                  initialfile='handled_image.png',
                                  title='Сохранить изображение',
                                  filetypes=[('png files', '.png'), ('jpg files', '.jpg')],
@@ -158,7 +159,7 @@ class ToolbarButton(Button):
 
 
 def make_background(root):
-    bg_path = '../neural-networks-sandbox/resourses/gradient.png'
+    bg_path = BACKGROUND_IMAGE_PATH
     bi = PhotoImage(file=bg_path)
     # blabel = Label(root, bg='#9AF')
     blabel = Label(root, image=bi)  # , text='asd')  # , bg='#9AF')
