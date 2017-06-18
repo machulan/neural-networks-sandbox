@@ -4,15 +4,15 @@ from keras.layers import Input, Dense  # the two types of neural network layer w
 from keras.utils import np_utils  # utilities for one-hot encoding of ground truth values
 from keras.backend import clear_session
 
-(X_train, y_train), (X_test, y_test) = mnist.load_data()
+# (X_train, y_train), (X_test, y_test) = mnist.load_data()
 # print(len(X_train), len(y_train))
-X = X_train[0]
-print(X)
-print(len(X), len(X[0]))
+# X = X_train[0]
+# print(X)
+# print(len(X), len(X[0]))
 
 # print(X_train[:5])
 # print(y_train[:5]) # [5 0 4 1 9]
-exit()
+# exit()
 
 batch_size = 128  # in each iteration we consider 128 training examples at once
 # num_epochs = 20  # we iterate twenty times over the entire training set
@@ -36,7 +36,7 @@ X_test /= 255  # Normalise data to [0, 1] range
 
 Y_train = np_utils.to_categorical(y_train, num_classes)  # One-hot encode the labels
 Y_test = np_utils.to_categorical(y_test, num_classes)  # One-hot encode the labels
-
+# exit()
 # forming the layers
 inp = Input(shape=(height * width,))  # Our input is a 1D vector of size 784
 hidden1 = Dense(hidden_size, activation='relu')(inp)  # First hidden ReLU layer
@@ -55,7 +55,7 @@ model = Model(inputs=inp, outputs=out)  # To define a model just specify its inp
 model.compile(loss='categorical_crossentropy',  # using cross-entropy loss function
               optimizer='adam',  # using the Adam optimiser
               metrics=['accuracy'])  # reporting the accuracy
-
+# exit()
 # running the algorithm
 
 train_result = model.fit(X_train, Y_train,  # Train the model using the training set...
@@ -63,10 +63,28 @@ train_result = model.fit(X_train, Y_train,  # Train the model using the training
                     epochs=num_epochs,
                     verbose=1,
                     validation_split=0.1)  # ...holding out 10% of the data for validation
+
+# exit()
+
 test_result = model.evaluate(X_test, Y_test, verbose=1)  # Evaluate the trained model on the test set
+
+prediction = model.predict(X_test, batch_size=batch_size, verbose=1)
+
+# exit()
 
 print()
 print('test_result :', test_result)
 print('train_result :', 'epochs :', train_result.epoch, 'history :', train_result.history)
 
 clear_session()
+
+# Y = Y_test.astype('float32')[:10]
+Y = Y_test.round()[:10]
+P = prediction.round()[:10]
+print('Y_test :', Y)
+print('prediction :', P)
+print('EQUAL?', Y == P)
+print(type(Y[0][0]), type(P[0][0]), type(Y), type(P), type(Y[0]), type(P[0]))
+
+from keras.utils import plot_model, serialize_keras_object
+plot_model(model, to_file='model.png', show_shapes=False, show_layer_names=False, rankdir='TB')

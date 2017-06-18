@@ -103,4 +103,14 @@ print(list(image_data)[:10])
 # img.show()
 # bm = img.tobitmap()
 
+#img = Image.fromstring('RGB', (100, 100), )
+
+img = img.convert('L')
+image_data = img.getdata()
+print(list(image_data)[:10])
+
+# r, g, b = im.split()
+# im = Image.merge("RGB", (b, g, r))
+
+
 

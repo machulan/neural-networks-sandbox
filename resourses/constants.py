@@ -10,6 +10,8 @@ BACKGROUND_IMAGE_PATH_LINUX = '../Coursework3/resourses/gradient.png'
 
 print('Your OS is', os.name)
 
+#TODO os.name => sys.platform
+
 OS_NAME = os.name
 
 if OS_NAME == 'nt':
