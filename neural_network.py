@@ -156,7 +156,8 @@ def fit_dense():
     # else:
     #     print(neural_network['model'])
 
-def fit_conv():
+
+def fit_dense_improved():
     print('neural network fitting...')
 
     from keras.layers import Input, Dense, Conv2D, MaxPooling2D
@@ -165,7 +166,7 @@ def fit_conv():
     from keras.regularizers import l2  # L2-regularisation
 
     batch_size = 128  # in each iteration we consider 128 training examples at once
-    num_epochs = 20 # we iterate twenty times over the entire training set
+    num_epochs = 20  # we iterate twenty times over the entire training set
     hidden_size = 512
     kernel_size = 3  # we will use 3x3 kernels throughout
     conv_depth = 32  # use 32 kernels in both convolutional layers
@@ -204,7 +205,7 @@ def fit_conv():
     hidden1 = Dense(hidden_size, activation='relu')(inp_norm)
     hidden2 = Dense(hidden_size, activation='relu')(hidden1)
     hidden3 = Dense(hidden_size, activation='tanh')(hidden2)
-    out = Dense(height_Y_train * width_Y_train, activation='sigmoid')(hidden3) # activation='relu'
+    out = Dense(height_Y_train * width_Y_train, activation='sigmoid')(hidden3)  # activation='relu'
     # https://keras.io/activations/
     # activation : relu, elu
 
@@ -229,47 +230,51 @@ def fit_conv():
 
     prediction = model.predict(X_test, batch_size=batch_size, verbose=1)
 
-    print()
-    # PREDICTION IMAGE
-    print('prediction image :')
+    show_images = False
+    for i in range(10):
+        print()
+        # PREDICTION IMAGE
+        print('prediction image ' + str(i) + ' :')
 
-    # prediction[0].resize((height_Y_test, width_Y_test))
-    prediction.resize((num_Y_test, height_Y_test, width_Y_test))
-    prediction = np.rint(prediction * 255).astype('uint8')
-    # print(prediction[0])
-    print_ndarray_info(prediction)  # reshape((3, 4)) => a ; resize((2,6)) => on place
-    print_ndarray_info(prediction[0])
+        # prediction[0].resize((height_Y_test, width_Y_test))
+        prediction.resize((num_Y_test, height_Y_test, width_Y_test))
+        prediction = np.rint(prediction * 255).astype('uint8')
+        # print(prediction[0])
+        print_ndarray_info(prediction)  # reshape((3, 4)) => a ; resize((2,6)) => on place
+        print_ndarray_info(prediction[i])
 
-    from keras.backend import clear_session
-    clear_session()
+        from keras.backend import clear_session
+        clear_session()
 
-    from image_handler import get_image
-    prediction_image = get_image(prediction[0], mode='L')
-    prediction_image.show(title='Prediction 28')
-    prediction_image.save('saved_images/prediction.png')
+        from image_handler import get_image
+        prediction_image = get_image(prediction[i], mode='L')
+        if show_images:
+            prediction_image.show(title='Prediction 28')
+        prediction_image.save('saved_images/' + str(i) + '_prediction.png')
 
-    # ZOOMED OUT IMAGE
-    print('zoomed out image :')
+        # ZOOMED OUT IMAGE
+        print('zoomed out image ' + str(i) + ':')
 
-    X_test.resize((num_X_test, height_X_test, width_X_test))
-    X_test = np.rint(X_test * 255).astype('uint8')
-    print_ndarray_info(X_test)
-    print_ndarray_info(X_test[0])
+        X_test.resize((num_X_test, height_X_test, width_X_test))
+        X_test = np.rint(X_test * 255).astype('uint8')
+        print_ndarray_info(X_test)
+        print_ndarray_info(X_test[i])
 
-    zoomed_out_image = get_image(X_test[0], mode='L')
-    # zoomed_out_image.show(title='Zoomed out 14')
+        zoomed_out_image = get_image(X_test[i], mode='L')
+        # zoomed_out_image.show(title='Zoomed out 14')
 
-    # ORIGINAL IMAGE
-    print('original image :')
+        # ORIGINAL IMAGE
+        print('original image ' + str(i) + ':')
 
-    Y_test.resize((num_Y_test, height_Y_test, width_Y_test))
-    Y_test = np.rint(Y_test * 255).astype('uint8')
-    print_ndarray_info(Y_test)
-    print_ndarray_info(Y_test[0])
+        Y_test.resize((num_Y_test, height_Y_test, width_Y_test))
+        Y_test = np.rint(Y_test * 255).astype('uint8')
+        print_ndarray_info(Y_test)
+        print_ndarray_info(Y_test[i])
 
-    original_image = get_image(Y_test[0], mode='L')
-    original_image.show(title='ORIGINAL IMAGE 28')
-    original_image.save('saved_images/original.png')
+        original_image = get_image(Y_test[i], mode='L')
+        if show_images:
+            original_image.show(title='ORIGINAL IMAGE 28')
+        original_image.save('saved_images/' + str(i) + '_original.png')
 
 
 def test(model, X_test, Y_test, verbose=0):
@@ -331,7 +336,7 @@ if __name__ == '__main__':
     # pickle_mnist()
     # run([])
     # fit_dense()
-    fit_conv()
+    fit_dense_improved()
     #
     # from keras.datasets import mnist
     #
