@@ -1,5 +1,11 @@
 import os
 
+# Fonts
+
+COMPARE_IMAGES_RESULT_LABEL_FONT = ('consolas', 12, '')
+
+# OS
+
 OPENFILE_INITIALDIR_WINDOWS = r'C:\Users\User\PycharmProjects\neural-networks-sandbox\images'
 SAVEFILE_INITIALDIR_WINDOWS = r'C:\Users\User\PycharmProjects\neural-networks-sandbox\images'
 BACKGROUND_IMAGE_PATH_WINDOWS = '../neural-networks-sandbox/resourses/gradient.png'

@@ -28,7 +28,10 @@ num_classes = 10  # there are 10 classes (1 per digit)
 
 (X_train, y_train), (X_test, y_test) = mnist.load_data()  # fetch MNIST data
 
+# print(X_train.shape)
 X_train = X_train.reshape(X_train.shape[0], depth, height, width)
+# print(X_train.shape)
+# exit()
 X_test = X_test.reshape(X_test.shape[0], depth, height, width)
 X_train = X_train.astype('float32')
 X_test = X_test.astype('float32')
@@ -91,6 +94,7 @@ for i in range(ens_models):
     # Conv [32] -> Conv [32] -> Pool (with dropout on the pooling layer), applying BN in between
     conv_1 = Convolution2D(conv_depth, kernel_size, kernel_size, border_mode='same', init='he_uniform',
                            W_regularizer=l2(l2_lambda), activation='relu')(inp_norm)
+
     conv_1 = BatchNormalization(axis=1)(conv_1)
     conv_2 = Convolution2D(conv_depth, kernel_size, kernel_size, border_mode='same', init='he_uniform',
                            W_regularizer=l2(l2_lambda), activation='relu')(conv_1)
@@ -112,6 +116,11 @@ model = Model(input=inp, output=out)  # To define a model, just specify its inpu
 model.compile(loss='categorical_crossentropy',  # using the cross-entropy loss function
               optimizer='adam',  # using the Adam optimiser
               metrics=['accuracy'])  # reporting the accuracy
+
+from keras.utils import plot_model
+plot_model(model, to_file='model.png', show_shapes=True, show_layer_names=True, rankdir='TB') # 'LR' => horizontal
+print(model.summary())
+exit()
 
 datagen = ImageDataGenerator(
     width_shift_range=0.1,  # randomly shift images horizontally (fraction of total width)
@@ -153,8 +162,8 @@ print('Y_test :', Y)
 print('prediction :', P)
 print('EQUAL?', Y == P)
 
-from keras.utils import plot_model, serialize_keras_object
-plot_model(model, to_file='model.png', show_shapes=True, show_layer_names=True, rankdir='TB') # 'LR' => horizontal
+from keras.utils import serialize_keras_object
+# plot_model(model, to_file='model.png', show_shapes=True, show_layer_names=True, rankdir='TB') # 'LR' => horizontal
 ser = serialize_keras_object(model)
 # file = open('model.ser', 'w')
 # file.write(ser)

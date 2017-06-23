@@ -2,6 +2,10 @@ from PIL import Image
 
 import neural_network
 
+import numpy as np
+import math
+import metrics
+
 
 def print_image_data1(image):
     print('Image data:')
@@ -49,7 +53,6 @@ def handle_image(image):
 
 
 def get_image(image_data, mode='L'):
-    import numpy as np
     image_data = np.array(image_data).astype('uint8')
     image = Image.fromarray(image_data, mode=mode)
     # image.show()
@@ -71,11 +74,28 @@ def convert_to_rgb(image):
     return image.convert('RGB')
 
 
+def get_images_difference(true_image, pred_image, metric='psnr'):
+    if metric == 'psnr':
+        true_image_data = get_image_data(true_image)
+        pred_image_data = get_image_data(pred_image)
+        return metrics.psnr(true_image_data, pred_image_data)
+    else:
+        print('Unknown metric ' + str(metric))
+        exit()
+
+
 def get_image_data(image):
-    import numpy as np
     image_data = list(image.getdata())
     image_data = np.array(image_data)
-    image_data.shape = (image.height, image.width)
+    print('image_data shape before changing:', image_data.shape)
+    if image_data.ndim == 1:
+        print('Getting L image data...')
+        image_data.shape = (image.height, image.width)
+        # exit()
+    else:
+        print('Getting RGB image data...')
+        image_data.shape = (image.height, image.width, 3)
+    print('image_data shape after changing:', image_data.shape)
     return image_data.tolist()
 
 
@@ -162,6 +182,9 @@ if __name__ == '__main__':
     # print('Y_train', len(Y_train))
     # print('X_test', len(X_test))
     # print('Y_test', len(Y_test))
+
+    path_to_images = 'images/'
+    get_images_difference()
 
 
     # show_mnist_example()
