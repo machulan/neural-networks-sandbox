@@ -8,7 +8,6 @@ import keras
 # import keras.metrics as m
 # import keras.backend as K
 
-
 def convert_mnist_dataset_to_ndarrays():
     mnist_dataset_file = open('datasets/mnist-dataset.pkl', 'rb')
     dataset_X, dataset_Y = pickle.load(mnist_dataset_file)
@@ -65,6 +64,14 @@ def print_result(train_result, test_result):
     print('train_result :', 'epochs :', train_result.epoch, 'history :', train_result.history)
 
 
+def print_train_result(train_result):
+    print('train_result :', 'epochs :', train_result.epoch, 'history :', train_result.history)
+
+
+def print_test_result(test_result):
+    print('test_result :', test_result)
+
+
 def psnr_L(y_true, y_pred):
     # Peak signal-to-noise ratio
     # the 'Mean Squared Error' between the two images is the
@@ -78,6 +85,8 @@ def psnr_L(y_true, y_pred):
     arg = maxf / keras.backend.sqrt(mse)
     ten = keras.backend.constant(10)
     return 20 * keras.backend.log(arg) / keras.backend.log(ten)
+
+
 
     # import tensorflow as tf
 
@@ -93,6 +102,10 @@ def psnr_L(y_true, y_pred):
     # print(type(K.mean(y_pred)))
     # return K.mean(y_pred)
 
+
+# TODO IFC (Information Fidelity Criterion), NQM (Noise Quality Measure),
+# TODO PSNR (weighted peak signal-to-noise ratio),
+# TODO MSSSIM (multiscale structure similarity index)
 
 def fit_dense():
     print('neural network fitting...')
@@ -234,7 +247,7 @@ def fit_dense_improved():
     from keras.regularizers import l2  # L2-regularisation
 
     batch_size = 128  # in each iteration we consider 128 training examples at once
-    num_epochs = 20  # we iterate twenty times over the entire training set
+    num_epochs = 1  # we iterate twenty times over the entire training set
     hidden_size = 512
     kernel_size = 3  # we will use 3x3 kernels throughout
     conv_depth = 32  # use 32 kernels in both convolutional layers
@@ -268,33 +281,48 @@ def fit_dense_improved():
     Y_train /= 255  # np.max(Y_train)  # Normalise data to [0, 1] range
     Y_test /= 255  # np.max(Y_test)  # Normalise data to [0, 1] range
 
-    inp = Input(shape=(height_X_train * width_X_train,))
-    inp_norm = BatchNormalization(axis=1)(inp)
-    hidden1 = Dense(hidden_size, activation='relu')(inp_norm)  # 'relu'
-    hidden2 = Dense(hidden_size, activation='relu')(hidden1)  # 'relu'
-    hidden3 = Dense(hidden_size, activation='sigmoid')(hidden2)  # 'tanh'
-    out = Dense(height_Y_train * width_Y_train, activation='sigmoid')(hidden3)  # activation='sigmoid'
-    # https://keras.io/activations/
-    # activation : relu, elu
+    use_saved = True
+    if not use_saved:
+        inp = Input(shape=(height_X_train * width_X_train,))
+        inp_norm = BatchNormalization(axis=1)(inp)
+        hidden1 = Dense(hidden_size, activation='relu')(inp_norm)  # 'relu'
+        hidden2 = Dense(hidden_size, activation='relu')(hidden1)  # 'relu'
+        hidden3 = Dense(hidden_size, activation='sigmoid')(hidden2)  # 'tanh'
+        out = Dense(height_Y_train * width_Y_train, activation='sigmoid')(hidden3)  # activation='sigmoid'
+        # https://keras.io/activations/
+        # activation : relu, elu
 
-    model = Model(inputs=inp, outputs=out)
+        model = Model(inputs=inp, outputs=out)
 
-    # https://keras.io/losses/
-    # https://keras.io/optimizers/
+        # https://keras.io/losses/
+        # https://keras.io/optimizers/
 
-    model.compile(loss='mean_squared_error',
-                  optimizer='adam',
-                  metrics=['accuracy', psnr_L])
+        model.compile(loss='mean_squared_error',
+                      optimizer='adam',
+                      metrics=['accuracy', psnr_L])
 
-    train_result = model.fit(X_train, Y_train,  # Train the model using the training set...
-                             batch_size=batch_size,  # nb_epoch=num_epochs, verbose=0,
-                             epochs=num_epochs,
-                             verbose=1,
-                             validation_split=0.0)  # ...holding out 10% of the data for validation
+        train_result = model.fit(X_train, Y_train,  # Train the model using the training set...
+                                 batch_size=batch_size,  # nb_epoch=num_epochs, verbose=0,
+                                 epochs=num_epochs,
+                                 verbose=1,
+                                 validation_split=0.0)  # ...holding out 10% of the data for validation
+
+        print_train_result(train_result)
+
+        # saving the model
+
+        model.save('models/dense-improved.h5')  # creates a HDF5 file 'models/dense-improved.h5'
+        # del model  # deletes the existing model
+    else:
+        # returns a compiled model
+        # identical to the previous one
+        model = keras.models.load_model('models/dense-improved.h5', custom_objects={'psnr_L': psnr_L})
+
+    # getting results
 
     test_result = model.evaluate(X_test, Y_test, verbose=1)  # Evaluate the trained model on the test set
 
-    print_result(train_result, test_result)
+    print_test_result(test_result)
 
     prediction = model.predict(X_test, batch_size=batch_size, verbose=1)
 
@@ -364,7 +392,7 @@ def fit_conv():
     hidden_size = 512  # 128
     depth = 1
 
-    (X_train, Y_train), (X_test, Y_test) = get_mnist_dataset_part()#train_part=0.2)
+    (X_train, Y_train), (X_test, Y_test) = get_mnist_dataset_part()  # train_part=0.2)
 
     num_X_train, height_X_train, width_X_train = X_train.shape
     num_X_test, height_X_test, width_X_test = X_test.shape
@@ -568,7 +596,7 @@ if __name__ == '__main__':
     # pickle_mnist()
     # run([])
     # fit_dense()  # psnr_L : 19.3015 (19.8356)
-    # fit_dense_improved()  # psnr_L : 21.6834 (22.2798)
+    fit_dense_improved()  # psnr_L : 21.6834 (22.2798)
     # fit_conv()  # psnr_L : [10000] 14.6536 (16.3086) [54000] 19.6423 (18.1249)
     #
     # convert_mnist_dataset_to_ndarrays()

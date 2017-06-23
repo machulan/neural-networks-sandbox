@@ -67,9 +67,13 @@ def compare_images():
     # print(true_image_data.shape)
     # print(image_handler.get_image_head_data(first_image))
 
-    label_text = 'PSNR (peak signal-to-noise ratio) (Пиковое отношение сигнала к шуму): \n' + str(psnr) + '\n' + \
+    label_text = 'PSNR (peak signal-to-noise ratio) (Пиковое отношение сигнала к шуму): \n' + str(psnr) + ' dB' + '\n' + \
                  'SSIM (structural similarity) (Индекс структурного сходства) \n' + str(ssim) + '\n' + \
                  'MSE (mean squared error) (Среднеквадратичная ошибка)\n' + str(mse)
+
+    # TODO IFC (Information Fidelity Criterion), NQM (Noise Quality Measure),
+    # TODO PSNR (weighted peak signal-to-noise ratio),
+    # TODO MSSSIM (multiscale structure similarity index)
 
     label = Label(window, text=label_text, font=COMPARE_IMAGES_RESULT_LABEL_FONT)
     label.pack(side=TOP, fill=BOTH, expand=YES, padx=20, pady=20)
