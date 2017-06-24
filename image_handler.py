@@ -74,6 +74,11 @@ def convert_to_rgb(image):
     return image.convert('RGB')
 
 
+def convert_to_YCbCr(image):
+    print('converting to YCbCr running...')
+    return image.convert('YCbCr')
+
+
 def get_images_difference(true_image, pred_image, metric='psnr'):
     if metric == 'psnr':
         true_image_data = get_image_data(true_image)
@@ -87,15 +92,15 @@ def get_images_difference(true_image, pred_image, metric='psnr'):
 def get_image_data(image):
     image_data = list(image.getdata())
     image_data = np.array(image_data)
-    print('image_data shape before changing:', image_data.shape)
+    # print('image_data shape before changing:', image_data.shape)
     if image_data.ndim == 1:
-        print('Getting L image data...')
+        # print('getting L image data...')
         image_data.shape = (image.height, image.width)
         # exit()
     else:
-        print('Getting RGB image data...')
+        print('getting RGB image data...')
         image_data.shape = (image.height, image.width, 3)
-    print('image_data shape after changing:', image_data.shape)
+    # print('image_data shape after changing:', image_data.shape)
     return image_data.tolist()
 
 
@@ -104,8 +109,13 @@ def get_image_head_data(image):
 
 
 def zoom_out_image(image, times=2.0):
-    print('zooming out the image')
+    # print('zooming out the image')
     return image.resize((int(image.width / times), int(image.height / times)))
+
+
+def zoom_up_image(image, times=2.0):
+    # print('zooming up the image')
+    return image.resize((int(image.width * times), int(image.height * times)))
 
 
 def show_mnist_example():
@@ -174,6 +184,7 @@ if __name__ == '__main__':
 
     # handle_mnist()
     from neural_network import get_mnist_dataset
+
     # dataset_X, dataset_Y = get_mnist_dataset()
     # print('dataset_X', len(dataset_X))
     # print('dataset_Y', len(dataset_Y))
@@ -181,10 +192,12 @@ if __name__ == '__main__':
     # print('X_train', len(X_train))
     # print('Y_train', len(Y_train))
     # print('X_test', len(X_test))
-    # print('Y_test', len(Y_test))
+    # # print('Y_test', len(Y_test))
+    #
+    # path_to_images = 'images/'
+    # get_images_difference()
 
-    path_to_images = 'images/'
-    get_images_difference()
+    make_srcnn_dataset_based_on_mnist()
 
 
     # show_mnist_example()
