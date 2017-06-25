@@ -1,6 +1,6 @@
 import pickle
 import numpy as np
-from keras.datasets import mnist
+from keras.datasets import mnist, cifar10, cifar100
 
 
 def validate_value_in_range(name, value, begin, end):
@@ -15,7 +15,7 @@ def validate_value_in_range(name, value, begin, end):
 
 
 def make_srcnn_dataset_based_on_mnist():
-    print('making SRCNN dataset using mnist...')
+    print('making SRCNN dataset using MNIST...')
 
     from image_handler import get_image, get_image_data, zoom_out_image, zoom_up_image
 
@@ -61,7 +61,7 @@ def make_srcnn_dataset_based_on_mnist():
 
 
 def make_srcnn_rgb_dataset_based_on_mnist():
-    print('making SRCNN-RGB dataset using srcnn dataset based on mnist...')
+    print('making SRCNN-RGB dataset using SRCNN dataset based on MNIST...')
 
     (X_train, Y_train), (X_test, Y_test) = get_srcnn_mnist_dataset_part(train_part=0.2)
 
@@ -104,6 +104,42 @@ def make_srcnn_rgb_dataset_based_on_mnist():
               (np.array(X_test, dtype=dtype), np.array(Y_test, dtype=dtype))
     print('saving dataset to srcnn-rgb-mnist-dataset.npz...')
     np.savez('datasets/srcnn-rgb-mnist-dataset.npz', dataset)
+
+
+def make_srcnn_rgb_dataset_based_on_cifar10():
+    print('making SRCNN-RGB dataset using CIFAR-10...')
+    (Y_train, _), (Y_test, _) = get_dataset_part(cifar10.load_data(), train_part=0.2)
+
+    from image_handler import get_image, get_image_data, zoom_out_image, zoom_up_image
+
+
+    # X_train
+    print('making X_train list...')
+    X_train = []
+    for item in Y_train:
+        image_data = item.tolist()
+        image = get_image(image_data, mode='RGB')
+        zoomed_out_image = zoom_out_image(image, times=2)
+        zoomed_up_image = zoom_up_image(zoomed_out_image, times=2)
+        zoomed_up_image_data = get_image_data(zoomed_up_image)
+        X_train.append(zoomed_up_image_data)
+
+    # X_test
+    print('making X_test list...')
+    X_test = []
+    for item in Y_test:
+        image_data = item.tolist()
+        image = get_image(image_data, mode='RGB')
+        zoomed_out_image = zoom_out_image(image, times=2)
+        zoomed_up_image = zoom_up_image(zoomed_out_image, times=2)
+        zoomed_up_image_data = get_image_data(zoomed_up_image)
+        X_test.append(zoomed_up_image_data)
+
+    dtype = 'uint8'
+    dataset = (np.array(X_train, dtype=dtype), np.array(Y_train, dtype=dtype)), \
+              (np.array(X_test, dtype=dtype), np.array(Y_test, dtype=dtype))
+    print('saving dataset to srcnn-rgb-cifar10-dataset.npz...')
+    np.savez('datasets/srcnn-rgb-cifar10-dataset.npz', dataset)
 
 
 def handle_mnist():
@@ -188,8 +224,7 @@ def show_mnist_example(count=1):
         get_image(X_train[i].tolist())
 
 
-def show_cifar10_example():
-    from keras.datasets import cifar10
+def show_cifar10_example(count=1):
     (X_train, y_train), (X_test, y_test) = cifar10.load_data()
 
     # num_train, height, width, depth = X_train.shape
@@ -197,8 +232,20 @@ def show_cifar10_example():
     # print(X_train[0].tolist())
 
     from image_handler import get_image
-    for i in range(5):
-        get_image(X_train[i].tolist(), mode='RGB')
+    for i in range(count):
+        get_image(X_train[i].tolist(), mode='RGB').show()
+
+
+def show_cifar100_example(count=1):
+    (X_train, y_train), (X_test, y_test) = cifar100.load_data()
+
+    # num_train, height, width, depth = X_train.shape
+    print(X_train.shape)
+    # print(X_train[0].tolist())
+
+    from image_handler import get_image
+    for i in range(count):
+        get_image(X_train[i].tolist(), mode='RGB').show()
 
 
 def get_dataset_part(dataset, train_part=1.0, test_part=1.0):
@@ -236,7 +283,7 @@ def get_mnist_dataset_part(train_part=1.0, test_part=1.0):
 
 
 def get_srcnn_mnist_dataset(path='datasets/srcnn-mnist-dataset.npz'):
-    print('getting SRCNN mnist dataset...')
+    print('getting SRCNN mnist dataset...')  # (60000, 28, 28) (10000, 28, 28)
     npzfile = np.load(path)
     return npzfile['arr_0']
 
@@ -246,7 +293,7 @@ def get_srcnn_mnist_dataset_part(train_part=1.0, test_part=1.0):
 
 
 def get_srcnn_rgb_mnist_dataset(path='datasets/srcnn-rgb-mnist-dataset.npz'):
-    print('getting SRCNN-RGB mnist dataset...')
+    print('getting SRCNN-RGB mnist dataset...')  # (12000, 28, 28, 3) (10000, 28, 28, 3)
     npzfile = np.load(path)
     return npzfile['arr_0']
 
@@ -255,8 +302,25 @@ def get_srcnn_rgb_mnist_dataset_part(train_part=1.0, test_part=1.0):
     return get_dataset_part(get_srcnn_rgb_mnist_dataset(), train_part=train_part, test_part=test_part)
 
 
+def get_srcnn_rgb_cifar10_dataset(path='datasets/srcnn-rgb-cifar10-dataset.npz'):
+    print('getting SRCNN-RGB CIFAR-10 dataset...')  # (10000, 32, 32, 3) (10000, 32, 32, 3)
+    print('opening ' + path + '...')
+    npzfile = np.load(path)
+    return npzfile['arr_0']
+
+
+def get_srcnn_rgb_cifar10_dataset_part(train_part=1.0, test_part=1.0):
+    return get_dataset_part(get_srcnn_rgb_mnist_dataset(), train_part=train_part, test_part=test_part)
+
+
 if __name__ == '__main__':
     print('dataset module running...')
     # make_srcnn_dataset_based_on_mnist()
-    make_srcnn_rgb_dataset_based_on_mnist()
+    # make_srcnn_rgb_dataset_based_on_mnist()
     # show_srcnn_mnist_dataset_example()
+
+    # show_cifar100_example(5)
+    # make_srcnn_rgb_dataset_based_on_cifar10()
+
+    # dataset = get_srcnn_rgb_cifar10_dataset()
+    # print(dataset[0][0].shape, dataset[1][0].shape)

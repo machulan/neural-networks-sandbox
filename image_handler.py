@@ -150,6 +150,16 @@ def zoom_up_image(image, times=2.0):
 if __name__ == '__main__':
     print('image_handler module running...')
 
+    # image_data = [[255,123,10,0]]
+    # image = get_image(image_data, mode='L')
+    # # image.show()
+    #
+    # # image_data = [[0,0,0, 0], [100,100,100,100], [255,255,255]]
+    # image_data = [[[0,50,0], [53,50,100], [234,0,234]]]
+    # image = get_image(image_data, mode='RGB')
+    # image.show()
+
+
     # handle_mnist()
     # from neural_network import get_mnist_dataset
 

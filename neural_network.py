@@ -681,7 +681,7 @@ def fit_conv_improved():
     depth = 1  # c
     l2_lambda = 0.0001
 
-    use_srcnn_rgb_mnist_dataset = False
+    use_srcnn_rgb_mnist_dataset = True
     if use_srcnn_rgb_mnist_dataset:
         depth = c = 3
         (X_train, Y_train), (X_test, Y_test) = get_srcnn_rgb_mnist_dataset_part(train_part=0.1, test_part=0.1)
@@ -731,8 +731,9 @@ def fit_conv_improved():
     # print(np.max(X_test), np.max(Y_test))
     # making PSNR metric
     psnr_3_callback = metrics.MetricsCallbackPSNR(X=(X_train, X_test), Y=(Y_train, Y_test), batch_size=batch_size)
-    ssim_3_callback = metrics.MetricsCallbackSSIM(X=(X_train, X_test), Y=(Y_train, Y_test), batch_size=batch_size,
-                                                  mode='L')
+    if not use_srcnn_rgb_mnist_dataset:
+        ssim_3_callback = metrics.MetricsCallbackSSIM(X=(X_train, X_test), Y=(Y_train, Y_test), batch_size=batch_size,
+                                                      mode='L')
 
     use_saved = False
     if use_saved:
@@ -755,7 +756,7 @@ def fit_conv_improved():
         # 64, 2 | 9, 3, 1, 5 | 32, 16, 16 | [24.4]
 
         batch_size = 64  # 128  # in each iteration we consider 128 training examples at once
-        num_epochs = 5
+        num_epochs = 2
         f_1, f_2, f_2_2, f_3 = 9, 3, 1, 5  # 9, 3, 1, 5 (32, 16, 16) [24.4]
         n_1, n_2, n_2_2 = 64, 32, 32
 
@@ -826,7 +827,7 @@ def fit_conv_improved():
                                  validation_split=0.0,  # ...holding out 10% of the data for validation
                                  callbacks=[
                                      psnr_3_callback,
-                                     ssim_3_callback
+                                     # ssim_3_callback,
                                  ])
 
         print_train_result(train_result)
@@ -861,14 +862,20 @@ def fit_conv_improved():
         print('prediction image ' + str(i) + ' :')
 
         # prediction[0].resize((height_Y_test, width_Y_test))
-        prediction.resize((num_Y_test, height_Y_test, width_Y_test))
+        if use_srcnn_rgb_mnist_dataset:
+            prediction.resize((num_Y_test, height_Y_test, width_Y_test, depth))
+        else:
+            prediction.resize((num_Y_test, height_Y_test, width_Y_test))
         prediction = np.rint(prediction * 255).astype('uint8')
         # print(prediction[0])
         print_ndarray_info(prediction)  # reshape((3, 4)) => a ; resize((2,6)) => on place
         print_ndarray_info(prediction[i])
 
         from image_handler import get_image
-        prediction_image = get_image(prediction[i], mode='L')
+        if use_srcnn_rgb_mnist_dataset:
+            prediction_image = get_image(prediction[i], mode='RGB')
+        else:
+            prediction_image = get_image(prediction[i], mode='L')
         if show_images:
             prediction_image.show(title='Prediction 28')
         prediction_image.save('saved_images/' + str(i) + '_prediction.png')
@@ -876,23 +883,35 @@ def fit_conv_improved():
         # ZOOMED OUT IMAGE
         print('zoomed out image ' + str(i) + ':')
 
-        X_test.resize((num_X_test, height_X_test, width_X_test))
+        if use_srcnn_rgb_mnist_dataset:
+            X_test.resize((num_X_test, height_X_test, width_X_test, depth))
+        else:
+            X_test.resize((num_X_test, height_X_test, width_X_test))
         X_test = np.rint(X_test * 255).astype('uint8')
         print_ndarray_info(X_test)
         print_ndarray_info(X_test[i])
 
-        zoomed_out_image = get_image(X_test[i], mode='L')
+        if use_srcnn_rgb_mnist_dataset:
+            zoomed_out_image = get_image(X_test[i], mode='RGB')
+        else:
+            zoomed_out_image = get_image(X_test[i], mode='L')
         # zoomed_out_image.show(title='Zoomed out 14')
 
         # ORIGINAL IMAGE
         print('original image ' + str(i) + ':')
 
-        Y_test.resize((num_Y_test, height_Y_test, width_Y_test))
+        if use_srcnn_rgb_mnist_dataset:
+            Y_test.resize((num_Y_test, height_Y_test, width_Y_test, depth))
+        else:
+            Y_test.resize((num_Y_test, height_Y_test, width_Y_test))
         Y_test = np.rint(Y_test * 255).astype('uint8')
         print_ndarray_info(Y_test)
         print_ndarray_info(Y_test[i])
 
-        original_image = get_image(Y_test[i], mode='L')
+        if use_srcnn_rgb_mnist_dataset:
+            original_image = get_image(Y_test[i], mode='RGB')
+        else:
+            original_image = get_image(Y_test[i], mode='L')
         if show_images:
             original_image.show(title='ORIGINAL IMAGE 28')
         original_image.save('saved_images/' + str(i) + '_original.png')
