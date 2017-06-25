@@ -6,6 +6,8 @@ import numpy as np
 import math
 import metrics
 
+from skimage.measure import compare_psnr, compare_ssim, compare_mse
+
 
 def print_image_data1(image):
     print('Image data:')
@@ -27,9 +29,10 @@ def handle_image(image):
     print_image_data(image)
 
     image_data = get_image_data(image)
-    handled_image_data = neural_network.run(image_data)
+    # handled_image_data = neural_network.run(image_data)
 
-    return get_image(handled_image_data, mode='L')
+    # return get_image(handled_image_data, mode='RGB')
+    # return get_image(handled_image_data, mode='L')
 
     # TODO shelve or pickle для запоминания нейронной сети IT DOESNT WORK
     # TODO h5py for saving model
@@ -40,6 +43,7 @@ def handle_image(image):
     # stub = Image.open('../neural-networks-sandbox/images/doctorwho.jpg')
 
     stub = image.resize((image.width * 2, image.height * 2))
+    return stub
 
     print(get_image_head_data(stub))
     # print(list(map(lambda p: (p[0] + p[1] + p[2]) // 3, get_image_head_data(stub))))
@@ -70,13 +74,19 @@ def convert_to_white_black(image):
 
 
 def convert_to_rgb(image):
-    print('converting to rgb running...')
+    # print('converting to rgb running...')
     return image.convert('RGB')
 
 
 def convert_to_YCbCr(image):
     print('converting to YCbCr running...')
     return image.convert('YCbCr')
+
+
+def convert_l_image_data_to_rgb_image_data(l_image_data):
+    image = get_image(l_image_data, mode='L')
+    rgb_image = convert_to_rgb(image)
+    return get_image_data(rgb_image)
 
 
 def get_images_difference(true_image, pred_image, metric='psnr'):
@@ -89,7 +99,26 @@ def get_images_difference(true_image, pred_image, metric='psnr'):
         exit()
 
 
-def get_image_data(image):
+def get_images_difference_metrics(true_image, pred_image):
+    print('computing images difference metrics...')
+    true_image = convert_to_rgb(true_image)
+    test_image = convert_to_rgb(pred_image)
+    true_image_data = get_image_data(true_image)
+    test_image_data = get_image_data(test_image)
+    true_image_data = np.array(true_image_data, dtype='uint8')
+    test_image_data = np.array(test_image_data, dtype='uint8')
+
+    # print(true_image_data.shape)
+    # print(test_image_data.shape)
+
+    psnr = compare_psnr(true_image_data, test_image_data)
+    ssim = compare_ssim(true_image_data, test_image_data, multichannel=True)
+    mse = compare_mse(true_image_data, test_image_data)
+
+    return psnr.item(), ssim.item(), mse.item()
+
+
+def get_image_data(image, mode='L'):
     image_data = list(image.getdata())
     image_data = np.array(image_data)
     # print('image_data shape before changing:', image_data.shape)
@@ -97,8 +126,8 @@ def get_image_data(image):
         # print('getting L image data...')
         image_data.shape = (image.height, image.width)
         # exit()
-    else:
-        print('getting RGB image data...')
+    elif image_data.ndim == 2:
+        # print('getting RGB image data...')
         image_data.shape = (image.height, image.width, 3)
     # print('image_data shape after changing:', image_data.shape)
     return image_data.tolist()
@@ -118,72 +147,11 @@ def zoom_up_image(image, times=2.0):
     return image.resize((int(image.width * times), int(image.height * times)))
 
 
-def show_mnist_example():
-    from keras.datasets import mnist
-    (X_train, y_train), (X_test, y_test) = mnist.load_data()
-
-    for i in range(1):
-        get_image(X_train[i].tolist())
-
-
-def show_cifar10_example():
-    from keras.datasets import cifar10
-    (X_train, y_train), (X_test, y_test) = cifar10.load_data()
-
-    # num_train, height, width, depth = X_train.shape
-    print(X_train.shape)
-    # print(X_train[0].tolist())
-
-    for i in range(5):
-        get_image(X_train[i].tolist(), mode='RGB')
-
-
-def handle_mnist():
-    from keras.datasets import mnist
-    (X_train, y_train), (X_test, y_test) = mnist.load_data()
-    # X_train[0].tolist()
-
-    # image_data = X_test[0].tolist()
-    # image = get_image(image_data, mode='L')
-    # image.show()
-    # return
-
-    dataset_size = 60000
-
-    dataset_X, dataset_Y = [], []
-    for i, X_train_item in enumerate(X_train[:dataset_size]):
-        image_data = X_train_item.tolist()
-        image = get_image(image_data, mode='L')
-        zoomed_out_image = zoom_out_image(image, times=2)
-        zoomed_out_image_data = get_image_data(zoomed_out_image)
-
-        dataset_X.append(zoomed_out_image_data)
-        dataset_Y.append(image_data)
-
-        print('image ' + str(i) + ', height : ' + str(len(image_data)), 'width : ' + str(len(image_data[0])), sep=', ')
-        print('zoomed_out_image ' + str(i) + ', height : ' + str(len(zoomed_out_image_data)),
-              'width : ' + str(len(zoomed_out_image_data[0])), sep=', ')
-        # print('image_data :', image_data)
-        # print('zoomed_out_image_data :', zoomed_out_image_data)
-        # image.show()
-        # zoomed_out_image.show()
-
-    dataset = (dataset_X, dataset_Y)
-
-    import pickle
-    mnist_dataset_file = open('datasets/mnist-dataset.pkl', 'wb')
-    pickle.dump(dataset, mnist_dataset_file)
-    mnist_dataset_file.close()
-
-
-    # zoomed_out_image.show()
-
-
 if __name__ == '__main__':
     print('image_handler module running...')
 
     # handle_mnist()
-    from neural_network import get_mnist_dataset
+    # from neural_network import get_mnist_dataset
 
     # dataset_X, dataset_Y = get_mnist_dataset()
     # print('dataset_X', len(dataset_X))
@@ -197,7 +165,7 @@ if __name__ == '__main__':
     # path_to_images = 'images/'
     # get_images_difference()
 
-    make_srcnn_dataset_based_on_mnist()
+    # make_srcnn_dataset_based_on_mnist()
 
 
     # show_mnist_example()

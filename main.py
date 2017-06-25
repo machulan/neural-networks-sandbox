@@ -61,6 +61,9 @@ def compare_images():
     true_image_data = np.array(true_image_data, dtype='uint8')
     test_image_data = np.array(test_image_data, dtype='uint8')
 
+    # print(true_image_data.shape)
+    # print(test_image_data.shape)
+
     psnr = compare_psnr(true_image_data, test_image_data)
     ssim = compare_ssim(true_image_data, test_image_data, multichannel=True)
     mse = compare_mse(true_image_data, test_image_data)

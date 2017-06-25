@@ -3,76 +3,12 @@ import pickle
 
 import numpy as np
 import keras
+import keras.metrics as M
+import keras.backend as K
 
-
-# import keras.metrics as m
-# import keras.backend as K
-
-def convert_mnist_dataset_to_ndarrays():
-    mnist_dataset_file = open('datasets/mnist-dataset.pkl', 'rb')
-    dataset_X, dataset_Y = pickle.load(mnist_dataset_file)
-    mnist_dataset_file.close()
-
-    dataset_size = len(dataset_X) // 1
-    dataset_X, dataset_Y = dataset_X[:dataset_size], dataset_Y[:dataset_size]
-
-    train_size = int(len(dataset_X) * 0.9)
-    X_train, X_test = dataset_X[:train_size], dataset_X[train_size:]
-    Y_train, Y_test = dataset_Y[:train_size], dataset_Y[train_size:]
-
-    mnist_dataset = (np.array(X_train, dtype='uint8'), np.array(Y_train, dtype='uint8')), \
-                    (np.array(X_test, dtype='uint8'), np.array(Y_test, dtype='uint8'))
-
-    np.savez('datasets/mnist-dataset', mnist_dataset)  # .npz
-
-    # return (np.array(X_train, dtype='uint8'), np.array(Y_train, dtype='uint8')), \
-    #        (np.array(X_test, dtype='uint8'), np.array(Y_test, dtype='uint8'))
-
-
-def get_mnist_dataset(path='datasets/mnist-dataset.npz'):
-    print('getting mnist dataset...')
-    npzfile = np.load(path)
-    return npzfile['arr_0']
-    # convert_mnist_dataset_to_npz
-    # path = 'datasets/mnist-dataset.npz' # get_file(path, origin='https://s3.amazonaws.com/img-datasets/mnist.npz')
-
-    # print(type(npzfile))
-    # print(npzfile.files)
-    # print(type(npzfile['arr_0']))
-    # file = np.load(path)
-    # x_train = file['x_train']
-    # y_train = file['y_train']
-    # x_test = file['x_test']
-    # y_test = file['y_test']
-    # file.close()
-    # return (x_train, y_train), (x_test, y_test)
-    # (X_train, Y_train), (X_test, Y_test) = get_mnist_dataset()
-
-
-def get_srcnn_mnist_dataset(path='datasets/srcnn-mnist-dataset.npz'):
-    print('getting SRCNN mnist dataset...')
-    npzfile = np.load(path)
-    return npzfile['arr_0']
-
-
-def validate_value_in_range(name, value, begin, end):
-    print('validation...')
-    if begin > end:
-        print('VALIDATION ERROR : begin less than end')
-        exit()
-    if not (begin <= value <= end):
-        print(name + ' ' + str(value) + ' is invalid! Valid range : [' + str(begin) + ', ' + str(end) + ']')
-        exit()
-
-
-def get_mnist_dataset_part(train_part=1.0, test_part=1.0):
-    validate_value_in_range('train_part', train_part, 0, 1)
-    validate_value_in_range('test_part', test_part, 0, 1)
-
-    (X_train, Y_train), (X_test, Y_test) = get_mnist_dataset()
-    train_size = int(len(X_train) * train_part)
-    test_size = int(len(X_test) * test_part)
-    return (X_train[:train_size], Y_train[:train_size]), (X_test[:test_size], Y_test[:test_size])
+from dataset import get_mnist_dataset, get_mnist_dataset_part, get_srcnn_mnist_dataset, get_srcnn_mnist_dataset_part, \
+    get_srcnn_rgb_mnist_dataset, get_srcnn_rgb_mnist_dataset_part, get_dataset_part
+import metrics
 
 
 def print_result(train_result, test_result):
@@ -95,7 +31,7 @@ def print_shape(name, train, test):
     num_test, height_test, width_test = map(str, test.shape)
 
     print(name + '_train : [ num : ' + num_train, 'height : ' + height_train, 'width : ' + width_train + ' ]',
-          name + '_test : [ num : ' + num_test + ' ]', sep=', ')
+          name + '_test : [ num : ' + num_test, 'height : ' + height_train, 'width : ' + width_train + ' ]', sep=', ')
 
 
 def plot_results(train_result, test_result):
@@ -114,7 +50,7 @@ def plot_results(train_result, test_result):
 
     plt.title('Train and test results')
     # ro, r--, bs, g^, -, -., :
-    plt.figure(1)
+    plt.figure(1, figsize=(16.0, 10.0))
     # ax = plt.figure(1).gca()  # plt.figure(1)
     for i, (metric, values) in enumerate(history.items()):
         # plt.subplot(subplots[i])
@@ -140,7 +76,19 @@ def plot_results(train_result, test_result):
     plt.subplots_adjust(top=0.9, bottom=0.10, left=0.10, right=0.90, hspace=0.5,
                         wspace=0.4)
     # plt.show()
+    print('saving train-and-test-results.png')
     plt.savefig('saved_images/train-and-test-results.png')
+    print('saving train-and-test-results.svg')
+    plt.savefig('saved_images/train-and-test-results.svg')
+
+
+def mse_L(y_true, y_pred):
+    # the 'Mean Squared Error' between the two images is the
+    # sum of the squared difference between the two images;
+    # NOTE: the two images must have the same dimension
+    # 0 == ideal, the less the better
+    print('MSE metric running...')
+    return keras.metrics.mean_squared_error(y_true, y_pred)
 
 
 def psnr_L(y_true, y_pred):
@@ -151,13 +99,103 @@ def psnr_L(y_true, y_pred):
     # NORMAL VALUES : [30, 40]
     print('PSNR metric running...')
 
-    maxf = 255  # keras.backend.max(y_true)
+    maxf = keras.backend.max(y_true)  # 255
     mse = keras.metrics.mean_squared_error(y_true, y_pred)
     arg = maxf / keras.backend.sqrt(mse)
     ten = keras.backend.constant(10)
     return 20 * keras.backend.log(arg) / keras.backend.log(ten)
 
 
+# import tensorflow as tf
+# sess = tf.Session()
+
+def psnr_3_channels(y_true, y_pred):
+    # Peak signal-to-noise ratio
+    # the 'Mean Squared Error' between the two images is the
+    # sum of the squared difference between the two images;
+    # NOTE: the two images must have the same dimension
+    # NORMAL VALUES : [30, 40]
+    print('PSNR (3 channels) metric running...')
+
+    maxf = 1.0  # K.max(y_true)
+    mse = keras.metrics.mean_squared_error(y_true, y_pred)
+    eps = K.constant(1e-6)  # K.epsilon()
+    arg = maxf / K.sqrt(mse + eps)  # + K.epsilon()
+    ten = K.constant(10)
+    return 20 * K.log(arg) / K.log(ten)
+    # return 1.0 / K.clip(mse, K.epsilon(), None)
+
+    # import tensorflow as tf
+    # v = (tf.Variable(y_true).data).cpu().numpy()
+    # print(y_true.get_shape())
+    # print(mse.data.numpy())
+
+    a = 1.0 / mse
+    # K.set_floatx('float16')
+    print(K.floatx())
+    return K.log(2.0)
+
+    ten = K.constant(10)
+    return 20 * K.log(arg) / K.log(ten)
+    #
+    # import tensorflow as tf
+    # from tensorflow.python.framework import ops
+    # from tensorflow.python.ops import gen_math_ops
+    # name = None
+    # x = tf.constant(5)
+    # with ops.name_scope(name, "Square", [x]) as name:
+    #     return gen_math_ops.square(x, name=name)
+    #
+    # result = _op_def_lib.apply_op("Square", x=x, name=name)
+
+
+    maxf = keras.backend.max(y_true)  # 255
+    mse = keras.metrics.mean_squared_error(y_true, y_pred)
+    arg = maxf / keras.backend.sqrt(mse)
+    ten = keras.backend.constant(10)
+    one_tenth = keras.backend.constant(0.0511)
+    one = keras.backend.constant(1)
+    s = keras.backend.sqrt(mse)
+    arg = keras.backend.sqrt(mse)
+    # global sess
+    # sess = keras.backend.get_session()
+    # val = keras.backend.get_value(mse)
+    # K.set_epsilon(1e-10)
+
+    import tensorflow as tf
+    a = tf.constant(5.0)
+    with tf.Session() as sess:
+        with sess.as_default():
+            print(sess.run(a * 2))
+            v = sess.run(a * 2)
+            print(type(v))
+            print(type(a))
+            print(type(mse))
+
+            print(type(sess.run(y_true)))
+
+            return K.constant(v)
+    return a
+    # sess = tf.InteractiveSession()
+    # v = mse.eval()
+    # return K.constant(v)
+
+    # with tf.InteractiveSession() as sess:
+    # with tf.Session() as sess:
+    #     v = mse.eval(session=sess)
+    #     return K.constant(v)
+    # a = tf.constant(5)
+    # return a
+
+    # val = mse.eval(session=sess)
+    # a = 20 * np.log10(1.0 / np.sqrt(val))
+    # return keras.backend.constant(a)
+    # keras.backend.set_epsilon(0.00000001)
+
+    # return keras.backend.round(ten)
+    # return keras.backend.greater_equal(one_tenth, ten)
+    # return 20 * keras.backend.log(arg) / keras.backend.log(ten)
+    return 20 * keras.backend.log(arg) / keras.backend.log(ten)
 
     # import tensorflow as tf
 
@@ -177,6 +215,14 @@ def psnr_L(y_true, y_pred):
 # TODO IFC (Information Fidelity Criterion), NQM (Noise Quality Measure),
 # TODO PSNR (weighted peak signal-to-noise ratio),
 # TODO MSSSIM (multiscale structure similarity index)
+
+def ssim_3_channels(y_true, y_pred):
+    print('SSIM (3 channels) metric running...')
+
+    mx = K.mean(y_true)
+    my = K.mean(y_pred)
+    return K.constant(-1)
+
 
 def fit_dense():
     print('neural network fitting...')
@@ -376,7 +422,7 @@ def fit_dense_improved():
 
         model.compile(loss='mean_squared_error',
                       optimizer='nadam',  # 'RMSprop', 'adam'
-                      metrics=['accuracy', psnr_L])
+                      metrics=['accuracy', psnr_L, mse_L])
 
         train_result = model.fit(X_train, Y_train,  # Train the model using the training set...
                                  batch_size=batch_size,  # nb_epoch=num_epochs, verbose=0,
@@ -614,10 +660,12 @@ def fit_conv():
 
 
 def fit_conv_improved():
-    print('SRCNN fitting...')
+    print('SRCNN running...')
 
     from keras.layers import Input, Conv1D, Conv2D, Conv3D
     from keras.models import Model
+    from keras.layers.normalization import BatchNormalization  # batch normalisation
+    from keras.regularizers import l2  # L2-regularisation
 
     f_1 = 9
     f_2 = 1
@@ -626,54 +674,113 @@ def fit_conv_improved():
     n_2 = 32
     c = 1
 
-    batch_size = 128  # in each iteration we consider 128 training examples at once
-    num_epochs = 1  # we iterate twenty times over the entire training set
-    kernel_size = 3
-    conv_depth = 32
-    depth = 1
+    batch_size = 64  # 128  # in each iteration we consider 128 training examples at once
+    num_epochs = 2  # we iterate twenty times over the entire training set
+    kernel_size = 3  # f_1, f_2, f_3
+    conv_depth = 32  # n_1, n_2
+    depth = 1  # c
+    l2_lambda = 0.0001
 
-    (X_train, Y_train), (X_test, Y_test) = get_mnist_dataset_part(train_part=0.1)  # train_part=0.2)
+    use_srcnn_rgb_mnist_dataset = False
+    if use_srcnn_rgb_mnist_dataset:
+        depth = c = 3
+        (X_train, Y_train), (X_test, Y_test) = get_srcnn_rgb_mnist_dataset_part(train_part=0.1, test_part=0.1)
 
-    num_X_train, height_X_train, width_X_train = X_train.shape
-    num_X_test, height_X_test, width_X_test = X_test.shape
+        num_X_train, height_X_train, width_X_train, _ = X_train.shape
+        num_X_test, height_X_test, width_X_test, _ = X_test.shape
 
-    print_shape('X', X_train, X_test)
+        num_Y_train, height_Y_train, width_Y_train, _ = Y_train.shape
+        num_Y_test, height_Y_test, width_Y_test, _ = Y_test.shape
+    else:
+        depth = c = 1
+        (X_train, Y_train), (X_test, Y_test) = get_srcnn_mnist_dataset_part(train_part=0.1, test_part=1)
 
-    X_train = X_train.reshape(num_X_train, depth, height_X_train, width_X_train)
-    X_test = X_test.reshape(num_X_test, depth, height_X_test, width_X_test)
-    X_train = X_train.astype('float32')
-    X_test = X_test.astype('float32')
+        num_X_train, height_X_train, width_X_train = X_train.shape
+        num_X_test, height_X_test, width_X_test = X_test.shape
+        print_shape('X', X_train, X_test)
+
+        num_Y_train, height_Y_train, width_Y_train = Y_train.shape
+        num_Y_test, height_Y_test, width_Y_test = Y_test.shape
+        print_shape('Y', Y_train, Y_test)
+    # print(np.max(X_train), np.max(Y_train))
+    # print(np.max(X_test), np.max(Y_test))
+
+    # K.set_floatx('float64')
+    dataset_type = 'float32'
+    # print(K.floatx())
+
+    X_train = X_train.astype(dataset_type)
+    X_test = X_test.astype(dataset_type)
+    Y_train = Y_train.astype(dataset_type)
+    Y_test = Y_test.astype(dataset_type)
+
     X_train /= 255  # np.max(X_train)  # Normalise data to [0, 1] range
     X_test /= 255  # np.max(X_test)  # Normalise data ti [0, 1] range
-
-    num_Y_train, height_Y_train, width_Y_train = Y_train.shape
-    num_Y_test, height_Y_test, width_Y_test = Y_test.shape
-
-    print_shape('Y', Y_train, Y_test)
-
-    Y_train = Y_train.reshape(num_Y_train, depth, height_Y_train, width_Y_train)  # , height_Y_train * width_Y_train)
-    Y_test = Y_test.reshape(num_Y_test, depth, height_Y_test, width_Y_test)  # , height_Y_test * width_Y_test)
-    Y_train = Y_train.astype('float32')
-    Y_test = Y_test.astype('float32')
     Y_train /= 255  # np.max(Y_train)  # Normalise data to [0, 1] range
     Y_test /= 255  # np.max(Y_test)  # Normalise data to [0, 1] range
+
+    # print(X_train[0])
+    # print(X_train.shape)
+    # exit()
+    X_train = X_train.reshape(num_X_train, depth, height_X_train, width_X_train)
+    X_test = X_test.reshape(num_X_test, depth, height_X_test, width_X_test)
+    Y_train = Y_train.reshape(num_Y_train, depth, height_Y_train, width_Y_train)  # , height_Y_train * width_Y_train)
+    Y_test = Y_test.reshape(num_Y_test, depth, height_Y_test, width_Y_test)  # , height_Y_test * width_Y_test)
+
+    # print(np.max(X_train), np.max(Y_train))
+    # print(np.max(X_test), np.max(Y_test))
+    # making PSNR metric
+    psnr_3_callback = metrics.MetricsCallbackPSNR(X=(X_train, X_test), Y=(Y_train, Y_test), batch_size=batch_size)
+    ssim_3_callback = metrics.MetricsCallbackSSIM(X=(X_train, X_test), Y=(Y_train, Y_test), batch_size=batch_size,
+                                                  mode='L')
 
     use_saved = False
     if use_saved:
         # returns a compiled model
         # identical to the previous one
-        model = keras.models.load_model('models/SRCNN.h5', custom_objects={'psnr_L': psnr_L})
+        model = keras.models.load_model('models/srcnn.h5', custom_objects={'psnr_L': psnr_L})
     else:
+        print('SRCNN fitting...')
         from keras import backend
         backend.set_image_dim_ordering('th')
 
+        # f_1-f_2-f_3
+        # 9-1-5
+        # 9-3-5
+        # 9-5-5
+        # 9-1-1-5
+        # 9-3-1-5
+        # 9-5-1-5
+
+        # 64, 2 | 9, 3, 1, 5 | 32, 16, 16 | [24.4]
+
+        batch_size = 64  # 128  # in each iteration we consider 128 training examples at once
+        num_epochs = 5
+        f_1, f_2, f_2_2, f_3 = 9, 3, 1, 5  # 9, 3, 1, 5 (32, 16, 16) [24.4]
+        n_1, n_2, n_2_2 = 64, 32, 32
+
         inp = Input(shape=(c, height_X_train, width_X_train))
 
-        conv_1 = Conv2D(n_1, (f_1, f_1), padding='same', activation='relu')(inp)
+        # inp_norm = BatchNormalization(axis=1)(inp)
 
-        conv_2 = Conv2D(n_2, (f_2, f_2), padding='same', activation='relu')(conv_1)
+        conv_1 = Conv2D(n_1, (f_1, f_1), padding='same', activation='relu', kernel_regularizer=l2(l2_lambda))(inp)
 
-        conv_3 = Conv2D(c, (f_3, f_3), padding='same', activation='relu')(conv_2)
+        # conv_1 = BatchNormalization(axis=1)(conv_1)
+
+        conv_2 = Conv2D(n_2, (f_2, f_2), padding='same', activation='relu', kernel_regularizer=l2(l2_lambda))(conv_1)
+
+        conv_2 = Conv2D(n_2_2, (f_2_2, f_2_2), padding='same', activation='relu', kernel_regularizer=l2(l2_lambda))(
+            conv_2)
+
+        conv_3 = Conv2D(c, (f_3, f_3), padding='same', activation='relu', kernel_regularizer=l2(l2_lambda))(conv_2)
+
+        # conv_1 = Conv2D(n_1, (f_1, f_1), padding='same', activation='relu')(inp)#, kernel_regularizer=l2(l2_lambda))(inp)
+        #
+        # # conv_1 = BatchNormalization(axis=1)(conv_1)
+        #
+        # conv_2 = Conv2D(n_2, (f_2, f_2), padding='same', activation='relu')(conv_1)#, kernel_regularizer=l2(l2_lambda))(conv_1)
+        #
+        # conv_3 = Conv2D(c, (f_3, f_3), padding='same', activation='relu')(conv_2)#, kernel_regularizer=l2(l2_lambda))(conv_2)
 
         # conv_1 = Conv3D(n_1, (c, f_1, f_1), activation='relu', input_shape=(c, height_X_train, width_X_train))
 
@@ -690,40 +797,110 @@ def fit_conv_improved():
 
         from keras.utils import plot_model
         plot_model(model, to_file='saved_images/SRCNN-model.png', show_shapes=True, show_layer_names=True, rankdir='TB')
+        plot_model(model, to_file='saved_images/SRCNN-model.svg', show_shapes=True, show_layer_names=True, rankdir='TB')
+
+        # keras.optimizers.Nadam(lr=0.002, beta_1=0.9, beta_2=0.999, epsilon=1e-08, schedule_decay=0.004, decay=? 1e-6, momentum=? 0.9, nesterov=True)
+        nadam = keras.optimizers.Nadam(lr=0.002, clipnorm=1.0, clipvalue=1.0)  # clipvalue=0.5 [-0.5, 0.5]
 
         model.compile(loss='mean_squared_error',
-                      optimizer='nadam',
-                      metrics=['accuracy', psnr_L])
+                      optimizer=nadam,  # 'nadam',
+                      metrics=['accuracy',
+                               # M.mean_absolute_error,
+                               # M.categorical_accuracy,
+                               # M.binary_accuracy,
+                               # M.top_k_categorical_accuracy,
+                               # M.mean_squared_logarithmic_error, # +++
+                               M.mean_squared_error,
+                               # mse_L
+                               # ssim_3_channels,
+                               psnr_3_channels
+                               ])
+        # #, psnr_3_channels])
 
         print(model.summary())
 
-        # train_result = model.fit(X_train, Y_train,  # Train the model using the training set...
-        #                          batch_size=batch_size,  # nb_epoch=num_epochs, verbose=0,
-        #                          epochs=num_epochs,
-        #                          verbose=1,
-        #                          validation_split=0.0)  # ...holding out 10% of the data for validation
-        #
-        # print_train_result(train_result)
+        train_result = model.fit(X_train, Y_train,  # Train the model using the training set...
+                                 batch_size=batch_size,  # nb_epoch=num_epochs, verbose=0,
+                                 epochs=num_epochs,
+                                 verbose=1,
+                                 validation_split=0.0,  # ...holding out 10% of the data for validation
+                                 callbacks=[
+                                     psnr_3_callback,
+                                     ssim_3_callback
+                                 ])
 
+        print_train_result(train_result)
+
+        # exit()
         # saving the model
 
-        # model.save('models/dense-improved.h5')  # creates a HDF5 file 'models/dense-improved.h5'
+        # model.save('models/srcnn.h5')  # creates a HDF5 file 'models/dense-improved.h5'
         # del model  # deletes the existing model
 
+    # getting results
+    test_result = model.evaluate(X_test, Y_test, verbose=1)  # Evaluate the trained model on the test set
+    print_test_result(test_result)
 
-        # getting results
+    # making plot
+    if not use_saved:
+        plot_results(train_result, test_result)
 
-        # test_result = model.evaluate(X_test, Y_test, verbose=1)  # Evaluate the trained model on the test set
-        #
-        # print_test_result(test_result)
-        #
-        # if not use_saved:
-        #     plot_results(train_result, test_result)
-        #
-        # prediction = model.predict(X_test, batch_size=batch_size, verbose=1)
-        #
-        # print(model.summary())
+    print('PSNR history :', psnr_3_callback.history)
+    print('epoch history : ', psnr_3_callback.epoch_history)
 
+    prediction = model.predict(X_test, batch_size=batch_size, verbose=1)
+    print(model.summary())
+
+    from keras.backend import clear_session
+    clear_session()
+
+    show_images = False
+    for i in range(10):
+        print()
+        # PREDICTION IMAGE
+        print('prediction image ' + str(i) + ' :')
+
+        # prediction[0].resize((height_Y_test, width_Y_test))
+        prediction.resize((num_Y_test, height_Y_test, width_Y_test))
+        prediction = np.rint(prediction * 255).astype('uint8')
+        # print(prediction[0])
+        print_ndarray_info(prediction)  # reshape((3, 4)) => a ; resize((2,6)) => on place
+        print_ndarray_info(prediction[i])
+
+        from image_handler import get_image
+        prediction_image = get_image(prediction[i], mode='L')
+        if show_images:
+            prediction_image.show(title='Prediction 28')
+        prediction_image.save('saved_images/' + str(i) + '_prediction.png')
+
+        # ZOOMED OUT IMAGE
+        print('zoomed out image ' + str(i) + ':')
+
+        X_test.resize((num_X_test, height_X_test, width_X_test))
+        X_test = np.rint(X_test * 255).astype('uint8')
+        print_ndarray_info(X_test)
+        print_ndarray_info(X_test[i])
+
+        zoomed_out_image = get_image(X_test[i], mode='L')
+        # zoomed_out_image.show(title='Zoomed out 14')
+
+        # ORIGINAL IMAGE
+        print('original image ' + str(i) + ':')
+
+        Y_test.resize((num_Y_test, height_Y_test, width_Y_test))
+        Y_test = np.rint(Y_test * 255).astype('uint8')
+        print_ndarray_info(Y_test)
+        print_ndarray_info(Y_test[i])
+
+        original_image = get_image(Y_test[i], mode='L')
+        if show_images:
+            original_image.show(title='ORIGINAL IMAGE 28')
+        original_image.save('saved_images/' + str(i) + '_original.png')
+
+        from image_handler import get_images_difference_metrics
+        psnr, ssim, mse = get_images_difference_metrics(original_image, prediction_image)
+        psnr, ssim, mse = round(psnr, 4), round(ssim, 4), round(ssim, 4)
+        print('PSNR : ' + str(psnr), 'SSIM : ' + str(ssim), 'MSE : ' + str(mse), sep=', ')
 
 
         # inp = Input(shape=(depth, height_X_train, width_X_train))
