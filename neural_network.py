@@ -7,7 +7,8 @@ import keras.metrics as M
 import keras.backend as K
 
 from dataset import get_mnist_dataset, get_mnist_dataset_part, get_srcnn_mnist_dataset, get_srcnn_mnist_dataset_part, \
-    get_srcnn_rgb_mnist_dataset, get_srcnn_rgb_mnist_dataset_part, get_dataset_part
+    get_srcnn_rgb_mnist_dataset, get_srcnn_rgb_mnist_dataset_part, get_srcnn_rgb_cifar10_dataset, \
+    get_srcnn_rgb_cifar10_dataset_part, get_dataset_part
 import metrics
 
 
@@ -684,7 +685,8 @@ def fit_conv_improved():
     use_srcnn_rgb_mnist_dataset = True
     if use_srcnn_rgb_mnist_dataset:
         depth = c = 3
-        (X_train, Y_train), (X_test, Y_test) = get_srcnn_rgb_mnist_dataset_part(train_part=0.1, test_part=0.1)
+        # (X_train, Y_train), (X_test, Y_test) = get_srcnn_rgb_mnist_dataset_part(train_part=0.1, test_part=0.1)
+        (X_train, Y_train), (X_test, Y_test) = get_srcnn_rgb_cifar10_dataset_part(train_part=0.1, test_part=0.1)
 
         num_X_train, height_X_train, width_X_train, _ = X_train.shape
         num_X_test, height_X_test, width_X_test, _ = X_test.shape

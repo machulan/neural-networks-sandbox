@@ -310,7 +310,7 @@ def get_srcnn_rgb_cifar10_dataset(path='datasets/srcnn-rgb-cifar10-dataset.npz')
 
 
 def get_srcnn_rgb_cifar10_dataset_part(train_part=1.0, test_part=1.0):
-    return get_dataset_part(get_srcnn_rgb_mnist_dataset(), train_part=train_part, test_part=test_part)
+    return get_dataset_part(get_srcnn_rgb_cifar10_dataset(), train_part=train_part, test_part=test_part)
 
 
 if __name__ == '__main__':
