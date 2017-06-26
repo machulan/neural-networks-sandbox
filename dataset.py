@@ -112,7 +112,6 @@ def make_srcnn_rgb_dataset_based_on_cifar10():
 
     from image_handler import get_image, get_image_data, zoom_out_image, zoom_up_image
 
-
     # X_train
     print('making X_train list...')
     X_train = []
@@ -248,6 +247,16 @@ def show_cifar100_example(count=1):
         get_image(X_train[i].tolist(), mode='RGB').show()
 
 
+def show_srcnn_rgb_cifar10_dataset_example(count=1):
+    (X_train, Y_train), (X_test, Y_test) = get_srcnn_rgb_cifar10_dataset()
+    from image_handler import get_image
+    for i in range(count):
+        get_image(X_train[i], mode='RGB').show()
+        get_image(Y_train[i], mode='RGB').show()
+        # get_image(X_test[i], mode='RGB').show()
+        # get_image(Y_test[i], mode='RGB').show()
+
+
 def get_dataset_part(dataset, train_part=1.0, test_part=1.0):
     validate_value_in_range('train_part', train_part, 0, 1)
     validate_value_in_range('test_part', test_part, 0, 1)
@@ -324,3 +333,5 @@ if __name__ == '__main__':
 
     # dataset = get_srcnn_rgb_cifar10_dataset()
     # print(dataset[0][0].shape, dataset[1][0].shape)
+
+    show_srcnn_rgb_cifar10_dataset_example()

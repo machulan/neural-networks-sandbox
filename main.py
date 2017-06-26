@@ -94,8 +94,9 @@ def open_image():
 
     filename = askopenfilename(initialdir=OPENFILE_INITIALDIR,
                                initialfile='image.png',
-                               title='Открыть изображение', filetypes=[('png files', '.png'), ('jpg files', '.jpg')],
-                               defaultextension='.png')
+                               title='Открыть изображение',
+                               filetypes=[('all files', '.*'), ('png files', '.png'), ('jpg files', '.jpg')],
+                               defaultextension='.*')
 
     if filename == '':
         return

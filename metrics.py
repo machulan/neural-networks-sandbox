@@ -112,8 +112,6 @@ class MetricsCallbackSSIM(Callback):
         self.batch_size = batch_size
         self.mode = mode
 
-
-
     def on_train_begin(self, logs={}):
         print('SSIM callback metric running...')
         self.losses = []
@@ -157,3 +155,46 @@ class MetricsCallbackSSIM(Callback):
                 item_results.append(item_result)
             return np.average(item_results)
         return np.inf
+
+
+class MetricsCallbackMinMax(Callback):
+    def __init__(self, X, Y, batch_size):
+        print('making MIN-MAX callback metric...')
+        super().__init__()
+        self.X_train, self.X_test = X
+        self.Y_train, self.Y_test = Y
+        self.batch_size = batch_size
+
+    def on_train_begin(self, logs={}):
+        print('MIN-MAX callback metric running...')
+        self.losses = []
+        self.history = []
+        self.epoch_history = []
+
+    # def on_batch_end(self, batch, logs={}):
+    #     # batch == number of batch
+    #     self.losses.append(logs.get('loss'))
+    #     train_prediction = self.model.predict(self.X_train, batch_size=self.batch_size, verbose=0)
+    #     batch_result = self.psnr(self.Y_train, train_prediction)
+    #     self.epoch_history.append(batch_result)
+
+    def on_epoch_end(self, epoch, logs=None):
+        # print()
+        # print('end of epoch : ', epoch)
+        eval_on_train = True
+        if eval_on_train:
+            train_prediction = self.model.predict(self.X_train, batch_size=self.batch_size, verbose=0)
+            result = self.min_max(self.Y_train, train_prediction)
+        else:
+            test_prediction = self.model.predict(self.X_test, batch_size=self.batch_size, verbose=0)
+            result = self.min_max(self.Y_test, test_prediction)
+        self.history.append(result)
+        print(' - MIN-MAX:', result)
+
+    def on_train_end(self, logs=None):
+        test_prediction = self.model.predict(self.X_test, batch_size=self.batch_size, verbose=0)
+        self.test_result = self.min_max(self.Y_test, test_prediction)
+        print('MIN-MAX test result :', self.test_result)
+
+    def min_max(self, true_data, pred_data):
+        return np.min(pred_data), np.max(pred_data)

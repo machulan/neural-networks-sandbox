@@ -154,10 +154,10 @@ if __name__ == '__main__':
     # image = get_image(image_data, mode='L')
     # # image.show()
     #
-    # # image_data = [[0,0,0, 0], [100,100,100,100], [255,255,255]]
-    # image_data = [[[0,50,0], [53,50,100], [234,0,234]]]
-    # image = get_image(image_data, mode='RGB')
-    # image.show()
+    # image_data = [[0,0,0, 0], [100,100,100,100], [255,255,255]]
+    image_data = [[[0,50,0], [255,255,0], [234,0,234]]]
+    image = get_image(image_data, mode='RGB')
+    image.show()
 
 
     # handle_mnist()

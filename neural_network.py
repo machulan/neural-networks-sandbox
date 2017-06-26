@@ -2,6 +2,9 @@ import shelve
 import pickle
 
 import numpy as np
+import math
+import time
+
 import keras
 import keras.metrics as M
 import keras.backend as K
@@ -223,6 +226,13 @@ def ssim_3_channels(y_true, y_pred):
     mx = K.mean(y_true)
     my = K.mean(y_pred)
     return K.constant(-1)
+
+
+def normalise_ndarrrays(ndarrays):
+    result = []
+    for data in ndarrays:
+        result.append(data / np.max(data))
+    return np.array(result)
 
 
 def fit_dense():
@@ -667,6 +677,11 @@ def fit_conv_improved():
     from keras.models import Model
     from keras.layers.normalization import BatchNormalization  # batch normalisation
     from keras.regularizers import l2  # L2-regularisation
+    from keras.constraints import min_max_norm, max_norm
+    from keras.activations import relu
+
+    def custom_relu(x):
+        return relu(x, max_value=1.0)
 
     f_1 = 9
     f_2 = 1
@@ -686,7 +701,7 @@ def fit_conv_improved():
     if use_srcnn_rgb_mnist_dataset:
         depth = c = 3
         # (X_train, Y_train), (X_test, Y_test) = get_srcnn_rgb_mnist_dataset_part(train_part=0.1, test_part=0.1)
-        (X_train, Y_train), (X_test, Y_test) = get_srcnn_rgb_cifar10_dataset_part(train_part=0.1, test_part=0.1)
+        (X_train, Y_train), (X_test, Y_test) = get_srcnn_rgb_cifar10_dataset_part(train_part=1, test_part=1)
 
         num_X_train, height_X_train, width_X_train, _ = X_train.shape
         num_X_test, height_X_test, width_X_test, _ = X_test.shape
@@ -695,7 +710,7 @@ def fit_conv_improved():
         num_Y_test, height_Y_test, width_Y_test, _ = Y_test.shape
     else:
         depth = c = 1
-        (X_train, Y_train), (X_test, Y_test) = get_srcnn_mnist_dataset_part(train_part=0.1, test_part=1)
+        (X_train, Y_train), (X_test, Y_test) = get_srcnn_mnist_dataset_part(train_part=0.01, test_part=0.1)
 
         num_X_train, height_X_train, width_X_train = X_train.shape
         num_X_test, height_X_test, width_X_test = X_test.shape
@@ -733,6 +748,7 @@ def fit_conv_improved():
     # print(np.max(X_test), np.max(Y_test))
     # making PSNR metric
     psnr_3_callback = metrics.MetricsCallbackPSNR(X=(X_train, X_test), Y=(Y_train, Y_test), batch_size=batch_size)
+    min_max_callback = metrics.MetricsCallbackMinMax(X=(X_train, X_test), Y=(Y_train, Y_test), batch_size=batch_size)
     if not use_srcnn_rgb_mnist_dataset:
         ssim_3_callback = metrics.MetricsCallbackSSIM(X=(X_train, X_test), Y=(Y_train, Y_test), batch_size=batch_size,
                                                       mode='L')
@@ -747,6 +763,8 @@ def fit_conv_improved():
         from keras import backend
         backend.set_image_dim_ordering('th')
 
+        # TODO kerner_initializer='he_uniform'
+
         # f_1-f_2-f_3
         # 9-1-5
         # 9-3-5
@@ -758,24 +776,30 @@ def fit_conv_improved():
         # 64, 2 | 9, 3, 1, 5 | 32, 16, 16 | [24.4]
 
         batch_size = 64  # 128  # in each iteration we consider 128 training examples at once
-        num_epochs = 2
+        num_epochs = 5
         f_1, f_2, f_2_2, f_3 = 9, 3, 1, 5  # 9, 3, 1, 5 (32, 16, 16) [24.4]
-        n_1, n_2, n_2_2 = 64, 32, 32
+        n_1, n_2, n_2_2 = 64, 32, 32  # 32, 16, 16
 
         inp = Input(shape=(c, height_X_train, width_X_train))
 
         # inp_norm = BatchNormalization(axis=1)(inp)
 
-        conv_1 = Conv2D(n_1, (f_1, f_1), padding='same', activation='relu', kernel_regularizer=l2(l2_lambda))(inp)
+        conv_1 = Conv2D(n_1, (f_1, f_1), padding='same', activation=custom_relu, kernel_regularizer=l2(l2_lambda),
+                        kernel_initializer='he_uniform')(inp)
 
         # conv_1 = BatchNormalization(axis=1)(conv_1)
 
-        conv_2 = Conv2D(n_2, (f_2, f_2), padding='same', activation='relu', kernel_regularizer=l2(l2_lambda))(conv_1)
+        conv_2 = Conv2D(n_2, (f_2, f_2), padding='same', activation=custom_relu, kernel_regularizer=l2(l2_lambda),
+                        kernel_initializer='he_uniform')(conv_1)
 
-        conv_2 = Conv2D(n_2_2, (f_2_2, f_2_2), padding='same', activation='relu', kernel_regularizer=l2(l2_lambda))(
+        conv_2 = Conv2D(n_2_2, (f_2_2, f_2_2), padding='same', activation=custom_relu, kernel_regularizer=l2(l2_lambda),
+                        kernel_initializer='he_uniform')(
             conv_2)
 
-        conv_3 = Conv2D(c, (f_3, f_3), padding='same', activation='relu', kernel_regularizer=l2(l2_lambda))(conv_2)
+        # conv_2 = BatchNormalization(axis=1)(conv_2)
+
+        conv_3 = Conv2D(c, (f_3, f_3), padding='same', activation=custom_relu, kernel_regularizer=l2(l2_lambda),
+                        kernel_constraint=max_norm(1.0))(conv_2)
 
         # conv_1 = Conv2D(n_1, (f_1, f_1), padding='same', activation='relu')(inp)#, kernel_regularizer=l2(l2_lambda))(inp)
         #
@@ -802,8 +826,9 @@ def fit_conv_improved():
         plot_model(model, to_file='saved_images/SRCNN-model.png', show_shapes=True, show_layer_names=True, rankdir='TB')
         plot_model(model, to_file='saved_images/SRCNN-model.svg', show_shapes=True, show_layer_names=True, rankdir='TB')
 
-        # keras.optimizers.Nadam(lr=0.002, beta_1=0.9, beta_2=0.999, epsilon=1e-08, schedule_decay=0.004, decay=? 1e-6, momentum=? 0.9, nesterov=True)
-        nadam = keras.optimizers.Nadam(lr=0.002, clipnorm=1.0, clipvalue=1.0)  # clipvalue=0.5 [-0.5, 0.5]
+        # keras.optimizers.Nadam(lr=0.002, beta_1=0.9, beta_2=0.999, epsilon=1e-08, schedule_decay=0.004, decay=? 1e-6,
+        # momentum=? 0.9, nesterov=True)
+        nadam = keras.optimizers.Nadam()  # lr=0.002, clipnorm=1.0, clipvalue=1.0)  # clipvalue=0.5 [-0.5, 0.5]
 
         model.compile(loss='mean_squared_error',
                       optimizer=nadam,  # 'nadam',
@@ -830,6 +855,7 @@ def fit_conv_improved():
                                  callbacks=[
                                      psnr_3_callback,
                                      # ssim_3_callback,
+                                     min_max_callback,
                                  ])
 
         print_train_result(train_result)
@@ -849,13 +875,24 @@ def fit_conv_improved():
         plot_results(train_result, test_result)
 
     print('PSNR history :', psnr_3_callback.history)
-    print('epoch history : ', psnr_3_callback.epoch_history)
+    print('PSNR epoch history : ', psnr_3_callback.epoch_history)
+
+    if not use_srcnn_rgb_mnist_dataset:
+        print('SSIM history :', ssim_3_callback.history)
+        print('SSIM epoch history : ', ssim_3_callback.epoch_history)
+
+    print('MIN-MAX history :', min_max_callback.history)
+    print('MIN-MAX epoch history : ', min_max_callback.epoch_history)
 
     prediction = model.predict(X_test, batch_size=batch_size, verbose=1)
     print(model.summary())
 
     from keras.backend import clear_session
     clear_session()
+
+    normalise_prediction = True
+    if normalise_prediction:
+        prediction = normalise_ndarrrays(prediction)
 
     show_images = False
     for i in range(10):
@@ -1012,8 +1049,23 @@ def print_ndarray_info(ndarray):
     print(ndarray.ndim, ndarray.shape, ndarray.size, ndarray.dtype, ndarray.itemsize)
 
 
+def handle_time_range(secs):
+    msecs, secs = math.modf(secs)
+    msecs = int(msecs * 1000)
+    secs = int(secs)
+    mins = secs // 60
+    secs %= 60
+    return mins, secs, msecs
+
+
+def convert_handled_time_range_to_str(handled_time_range):
+    mins, secs, msecs = handled_time_range
+    return '{} m {} s {} ms'.format(mins, secs, msecs)
+
+
 if __name__ == '__main__':
     print('neural_network module running...')
+    begin_time = time.time()
     # pickle_mnist()
     # run([])
     # fit_dense()  # psnr_L : 19.3015 (19.8356)
@@ -1021,6 +1073,8 @@ if __name__ == '__main__':
     # fit_conv()  # psnr_L : [10000] 14.6536 (16.3086) [54000] 19.6423 (18.1249)
     #
     fit_conv_improved()
+
+    print('SRCNN running lasted', convert_handled_time_range_to_str(handle_time_range(time.time() - begin_time)))
 
     # dataset = get_mnist_dataset()
     # print(type(dataset))
