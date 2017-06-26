@@ -27,7 +27,7 @@ def handle_image(image):
     print('image handling running...')
 
     print_image_data(image)
-    mode = image.mode()
+    mode = image.mode
 
     image_data = get_image_data(image)
     handled_image_data = neural_network.run(image_data)

@@ -703,7 +703,7 @@ def fit_conv_improved():
         depth = c = 3
         # (X_train, Y_train), (X_test, Y_test) = get_srcnn_rgb_mnist_dataset_part(train_part=0.1, test_part=0.1)
         # (X_train, Y_train), (X_test, Y_test) = get_srcnn_rgb_cifar10_dataset_part(train_part=1, test_part=1)
-        (X_train, Y_train), (X_test, Y_test) = get_srcnn_rgb_cifar10_20000_dataset_part(train_part=1, test_part=1)
+        (X_train, Y_train), (X_test, Y_test) = get_srcnn_rgb_cifar10_20000_dataset_part(train_part=0.01, test_part=1)
 
         num_X_train, height_X_train, width_X_train, _ = X_train.shape
         num_X_test, height_X_test, width_X_test, _ = X_test.shape
@@ -712,7 +712,7 @@ def fit_conv_improved():
         num_Y_test, height_Y_test, width_Y_test, _ = Y_test.shape
     else:
         depth = c = 1
-        (X_train, Y_train), (X_test, Y_test) = get_srcnn_mnist_dataset_part(train_part=0.01, test_part=0.1)
+        (X_train, Y_train), (X_test, Y_test) = get_srcnn_mnist_dataset_part(train_part=0.1, test_part=1)
 
         num_X_train, height_X_train, width_X_train = X_train.shape
         num_X_test, height_X_test, width_X_test = X_test.shape
@@ -778,9 +778,9 @@ def fit_conv_improved():
         # 64, 2 | 9, 3, 1, 5 | 32, 16, 16 | [24.4]
 
         batch_size = 64  # 128  # in each iteration we consider 128 training examples at once
-        num_epochs = 5
+        num_epochs = 30
         f_1, f_2, f_2_2, f_3 = 9, 3, 1, 5  # 9, 3, 1, 5 (32, 16, 16) [24.4]
-        n_1, n_2, n_2_2 = 64, 32, 32  # 32, 16, 16
+        n_1, n_2, n_2_2 = 64, 32, 32  # 32, 16, 16 # 64, 32, 32  #
 
         inp = Input(shape=(c, height_X_train, width_X_train))
 
@@ -794,14 +794,16 @@ def fit_conv_improved():
         conv_2 = Conv2D(n_2, (f_2, f_2), padding='same', activation='relu', kernel_regularizer=l2(l2_lambda),
                         kernel_initializer='he_uniform')(conv_1)
 
-        conv_2 = Conv2D(n_2_2, (f_2_2, f_2_2), padding='same', activation=custom_relu, kernel_regularizer=l2(l2_lambda),
-                        kernel_initializer='he_uniform')(
+        conv_2 = Conv2D(n_2_2, (f_2_2, f_2_2), padding='same', activation='relu', kernel_regularizer=l2(l2_lambda),
+                        kernel_initializer='he_uniform')( # custom_relu
             conv_2)
 
         # conv_2 = BatchNormalization(axis=1)(conv_2)
 
-        conv_3 = Conv2D(c, (f_3, f_3), padding='same', activation=custom_relu, kernel_regularizer=l2(l2_lambda),
-                        kernel_constraint=max_norm(1.0))(conv_2)
+        # conv_3 = Conv2D(c, (f_3, f_3), padding='same', activation=custom_relu, kernel_regularizer=l2(l2_lambda),
+        #                 kernel_constraint=max_norm(1.0))(conv_2)
+        conv_3 = Conv2D(c, (f_3, f_3), padding='same', activation=custom_relu, kernel_regularizer=l2(l2_lambda),)(conv_2)
+                        #kernel_constraint=max_norm(1.0))(conv_2)
 
         # conv_1 = Conv2D(n_1, (f_1, f_1), padding='same', activation='relu')(inp)#, kernel_regularizer=l2(l2_lambda))(inp)
         #
