@@ -11,8 +11,8 @@ import keras.backend as K
 
 from dataset import get_mnist_dataset, get_mnist_dataset_part, get_srcnn_mnist_dataset, get_srcnn_mnist_dataset_part, \
     get_srcnn_rgb_mnist_dataset, get_srcnn_rgb_mnist_dataset_part, get_srcnn_rgb_cifar10_dataset, \
-    get_srcnn_rgb_cifar10_dataset_part, get_srcnn_rgb_cifar10_20000_dataset, get_srcnn_rgb_cifar10_20000_dataset_part,\
-    get_dataset_part
+    get_srcnn_rgb_cifar10_dataset_part, get_srcnn_rgb_cifar10_20000_dataset, get_srcnn_rgb_cifar10_20000_dataset_part, \
+    get_pasadena_dataset, get_pasadena_dataset_part, get_dataset_part
 import metrics
 
 
@@ -32,11 +32,18 @@ def print_test_result(test_result):
 
 
 def print_shape(name, train, test):
-    num_train, height_train, width_train = map(str, train.shape)
-    num_test, height_test, width_test = map(str, test.shape)
+    if len(train.shape) == 3:
+        num_train, height_train, width_train = map(str, train.shape)
+        num_test, height_test, width_test = map(str, test.shape)
+        depth_train = depth_test = 1
+    elif len(train.shape) == 4:
+        num_train, height_train, width_train, depth_train = map(str, train.shape)
+        num_test, height_test, width_test, depth_test = map(str, test.shape)
 
-    print(name + '_train : [ num : ' + num_train, 'height : ' + height_train, 'width : ' + width_train + ' ]',
-          name + '_test : [ num : ' + num_test, 'height : ' + height_train, 'width : ' + width_train + ' ]', sep=', ')
+    print(name + '_train : [ num : ' + num_train, 'height : ' + height_train, 'width : ' + width_train,
+          'depth : ' + depth_train + ' ]',
+          name + '_test : [ num : ' + num_test, 'height : ' + height_test, 'width : ' + width_test,
+          'depth : ' + depth_test + ' ]', sep=', ')
 
 
 def plot_results(train_result, test_result):
@@ -703,13 +710,17 @@ def fit_conv_improved():
         depth = c = 3
         # (X_train, Y_train), (X_test, Y_test) = get_srcnn_rgb_mnist_dataset_part(train_part=0.1, test_part=0.1)
         # (X_train, Y_train), (X_test, Y_test) = get_srcnn_rgb_cifar10_dataset_part(train_part=1, test_part=1)
-        (X_train, Y_train), (X_test, Y_test) = get_srcnn_rgb_cifar10_20000_dataset_part(train_part=0.01, test_part=1)
-
+        (X_train, Y_train), (X_test, Y_test) = get_srcnn_rgb_cifar10_20000_dataset_part(train_part=1, test_part=1)
+        # (X_train, Y_train), (X_test, Y_test) = get_pasadena_dataset_part(train_part=0.5, test_part=0.5)
         num_X_train, height_X_train, width_X_train, _ = X_train.shape
         num_X_test, height_X_test, width_X_test, _ = X_test.shape
+        print_shape('X', X_train, X_test)
 
         num_Y_train, height_Y_train, width_Y_train, _ = Y_train.shape
         num_Y_test, height_Y_test, width_Y_test, _ = Y_test.shape
+        print_shape('Y', Y_train, Y_test)
+
+        print('')
     else:
         depth = c = 1
         (X_train, Y_train), (X_test, Y_test) = get_srcnn_mnist_dataset_part(train_part=0.1, test_part=1)
@@ -778,7 +789,7 @@ def fit_conv_improved():
         # 64, 2 | 9, 3, 1, 5 | 32, 16, 16 | [24.4]
 
         batch_size = 64  # 128  # in each iteration we consider 128 training examples at once
-        num_epochs = 30
+        num_epochs = 20
         f_1, f_2, f_2_2, f_3 = 9, 3, 1, 5  # 9, 3, 1, 5 (32, 16, 16) [24.4]
         n_1, n_2, n_2_2 = 64, 32, 32  # 32, 16, 16 # 64, 32, 32  #
 
@@ -795,15 +806,16 @@ def fit_conv_improved():
                         kernel_initializer='he_uniform')(conv_1)
 
         conv_2 = Conv2D(n_2_2, (f_2_2, f_2_2), padding='same', activation='relu', kernel_regularizer=l2(l2_lambda),
-                        kernel_initializer='he_uniform')( # custom_relu
+                        kernel_initializer='he_uniform')(  # custom_relu
             conv_2)
 
         # conv_2 = BatchNormalization(axis=1)(conv_2)
 
         # conv_3 = Conv2D(c, (f_3, f_3), padding='same', activation=custom_relu, kernel_regularizer=l2(l2_lambda),
         #                 kernel_constraint=max_norm(1.0))(conv_2)
-        conv_3 = Conv2D(c, (f_3, f_3), padding='same', activation=custom_relu, kernel_regularizer=l2(l2_lambda),)(conv_2)
-                        #kernel_constraint=max_norm(1.0))(conv_2)
+        conv_3 = Conv2D(c, (f_3, f_3), padding='same', activation=custom_relu, kernel_regularizer=l2(l2_lambda), )(
+            conv_2)
+        # kernel_constraint=max_norm(1.0))(conv_2)
 
         # conv_1 = Conv2D(n_1, (f_1, f_1), padding='same', activation='relu')(inp)#, kernel_regularizer=l2(l2_lambda))(inp)
         #
@@ -866,8 +878,11 @@ def fit_conv_improved():
 
         # exit()
         # saving the model
-
-        # model.save('models/srcnn.h5')  # creates a HDF5 file 'models/dense-improved.h5'
+        path = 'models/srcnn-cifar10-20000-9_3_1_5-64_32_32-20epochs-he_uniform-custom_relu.h5'
+        print('saving model to ' + path + '...')
+        model.save(path)
+        print('model ' + path + ' saved')
+        # creates a HDF5 file 'models/dense-improved.h5'
         # del model  # deletes the existing model
 
     # getting results
