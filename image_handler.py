@@ -27,17 +27,18 @@ def handle_image(image):
     print('image handling running...')
 
     print_image_data(image)
+    mode = image.mode()
 
     image_data = get_image_data(image)
-    # handled_image_data = neural_network.run(image_data)
+    handled_image_data = neural_network.run(image_data)
+
+    return get_image(handled_image_data, mode=mode)
 
     # return get_image(handled_image_data, mode='RGB')
     # return get_image(handled_image_data, mode='L')
 
     # TODO shelve or pickle для запоминания нейронной сети IT DOESNT WORK
     # TODO h5py for saving model
-
-
 
 
     # stub = Image.open('../neural-networks-sandbox/images/doctorwho.jpg')

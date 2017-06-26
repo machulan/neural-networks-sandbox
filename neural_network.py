@@ -11,7 +11,8 @@ import keras.backend as K
 
 from dataset import get_mnist_dataset, get_mnist_dataset_part, get_srcnn_mnist_dataset, get_srcnn_mnist_dataset_part, \
     get_srcnn_rgb_mnist_dataset, get_srcnn_rgb_mnist_dataset_part, get_srcnn_rgb_cifar10_dataset, \
-    get_srcnn_rgb_cifar10_dataset_part, get_dataset_part
+    get_srcnn_rgb_cifar10_dataset_part, get_srcnn_rgb_cifar10_20000_dataset, get_srcnn_rgb_cifar10_20000_dataset_part,\
+    get_dataset_part
 import metrics
 
 
@@ -701,7 +702,8 @@ def fit_conv_improved():
     if use_srcnn_rgb_mnist_dataset:
         depth = c = 3
         # (X_train, Y_train), (X_test, Y_test) = get_srcnn_rgb_mnist_dataset_part(train_part=0.1, test_part=0.1)
-        (X_train, Y_train), (X_test, Y_test) = get_srcnn_rgb_cifar10_dataset_part(train_part=1, test_part=1)
+        # (X_train, Y_train), (X_test, Y_test) = get_srcnn_rgb_cifar10_dataset_part(train_part=1, test_part=1)
+        (X_train, Y_train), (X_test, Y_test) = get_srcnn_rgb_cifar10_20000_dataset_part(train_part=1, test_part=1)
 
         num_X_train, height_X_train, width_X_train, _ = X_train.shape
         num_X_test, height_X_test, width_X_test, _ = X_test.shape
@@ -784,12 +786,12 @@ def fit_conv_improved():
 
         # inp_norm = BatchNormalization(axis=1)(inp)
 
-        conv_1 = Conv2D(n_1, (f_1, f_1), padding='same', activation=custom_relu, kernel_regularizer=l2(l2_lambda),
+        conv_1 = Conv2D(n_1, (f_1, f_1), padding='same', activation='relu', kernel_regularizer=l2(l2_lambda),
                         kernel_initializer='he_uniform')(inp)
 
         # conv_1 = BatchNormalization(axis=1)(conv_1)
 
-        conv_2 = Conv2D(n_2, (f_2, f_2), padding='same', activation=custom_relu, kernel_regularizer=l2(l2_lambda),
+        conv_2 = Conv2D(n_2, (f_2, f_2), padding='same', activation='relu', kernel_regularizer=l2(l2_lambda),
                         kernel_initializer='he_uniform')(conv_1)
 
         conv_2 = Conv2D(n_2_2, (f_2_2, f_2_2), padding='same', activation=custom_relu, kernel_regularizer=l2(l2_lambda),
@@ -957,7 +959,7 @@ def fit_conv_improved():
 
         from image_handler import get_images_difference_metrics
         psnr, ssim, mse = get_images_difference_metrics(original_image, prediction_image)
-        psnr, ssim, mse = round(psnr, 4), round(ssim, 4), round(ssim, 4)
+        psnr, ssim, mse = round(psnr, 4), round(ssim, 4), round(mse, 4)
         print('PSNR : ' + str(psnr), 'SSIM : ' + str(ssim), 'MSE : ' + str(mse), sep=', ')
 
 
@@ -1002,6 +1004,8 @@ def test(model, X_test, Y_test, verbose=0):
 
 def run(data):
     print('neural network running...')
+
+    return data
 
     # list to ndarray : np.array(list) # dtype=np.uint8, dtype=np.float32
     # ndarray to list : ndarray.tolist()
@@ -1075,6 +1079,13 @@ if __name__ == '__main__':
     fit_conv_improved()
 
     print('SRCNN running lasted', convert_handled_time_range_to_str(handle_time_range(time.time() - begin_time)))
+
+
+    # from keras.utils import normalize
+    # a = np.array([1,2,3,4,5])
+    # print(normalize(a, axis=0, order=20))
+    # print(normalize(a, axis=1, order=2))
+    # print(normalize(a, axis=1, order=2))
 
     # dataset = get_mnist_dataset()
     # print(type(dataset))
