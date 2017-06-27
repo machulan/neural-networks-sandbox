@@ -34,6 +34,8 @@ def handle_image(image):
 
     return get_image(handled_image_data, mode=mode)
 
+    # return zoom_up_image(image, times=3.5)
+
     # return get_image(handled_image_data, mode='RGB')
     # return get_image(handled_image_data, mode='L')
 

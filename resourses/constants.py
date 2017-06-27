@@ -6,8 +6,8 @@ COMPARE_IMAGES_RESULT_LABEL_FONT = ('consolas', 12, '')
 
 # OS
 
-OPENFILE_INITIALDIR_WINDOWS = r'C:\Users\User\PycharmProjects\neural-networks-sandbox\images'
-SAVEFILE_INITIALDIR_WINDOWS = r'C:\Users\User\PycharmProjects\neural-networks-sandbox\images'
+OPENFILE_INITIALDIR_WINDOWS = r'C:\Users\User\PycharmProjects\neural-networks-sandbox\saved_images'
+SAVEFILE_INITIALDIR_WINDOWS = r'C:\Users\User\PycharmProjects\neural-networks-sandbox\saved_images'
 BACKGROUND_IMAGE_PATH_WINDOWS = '../neural-networks-sandbox/resourses/gradient.png'
 
 OPENFILE_INITIALDIR_LINUX = r'/home/nikitaubuntu1604/PycharmProjects/Coursework3/images'

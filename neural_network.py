@@ -8,11 +8,12 @@ import time
 import keras
 import keras.metrics as M
 import keras.backend as K
+from scipy.sparse.data import _data_matrix
 
 from dataset import get_mnist_dataset, get_mnist_dataset_part, get_srcnn_mnist_dataset, get_srcnn_mnist_dataset_part, \
     get_srcnn_rgb_mnist_dataset, get_srcnn_rgb_mnist_dataset_part, get_srcnn_rgb_cifar10_dataset, \
     get_srcnn_rgb_cifar10_dataset_part, get_srcnn_rgb_cifar10_20000_dataset, get_srcnn_rgb_cifar10_20000_dataset_part, \
-    get_pasadena_dataset, get_pasadena_dataset_part, get_dataset_part
+    get_pasadena_dataset, get_pasadena_dataset_part, get_hundred_dataset, get_hundred_dataset_part, get_dataset_part
 import metrics
 
 
@@ -234,6 +235,10 @@ def ssim_3_channels(y_true, y_pred):
     mx = K.mean(y_true)
     my = K.mean(y_pred)
     return K.constant(-1)
+
+
+def custom_relu(x):
+    return keras.activations.relu(x, max_value=1.0)
 
 
 def normalise_ndarrrays(ndarrays):
@@ -688,9 +693,6 @@ def fit_conv_improved():
     from keras.constraints import min_max_norm, max_norm
     from keras.activations import relu
 
-    def custom_relu(x):
-        return relu(x, max_value=1.0)
-
     f_1 = 9
     f_2 = 1
     f_3 = 5
@@ -705,13 +707,17 @@ def fit_conv_improved():
     depth = 1  # c
     l2_lambda = 0.0001
 
-    use_srcnn_rgb_mnist_dataset = True
-    if use_srcnn_rgb_mnist_dataset:
+    use_rgb_dataset = True
+    if use_rgb_dataset:
         depth = c = 3
         # (X_train, Y_train), (X_test, Y_test) = get_srcnn_rgb_mnist_dataset_part(train_part=0.1, test_part=0.1)
         # (X_train, Y_train), (X_test, Y_test) = get_srcnn_rgb_cifar10_dataset_part(train_part=1, test_part=1)
-        (X_train, Y_train), (X_test, Y_test) = get_srcnn_rgb_cifar10_20000_dataset_part(train_part=1, test_part=1)
+        (X_train, Y_train), (X_test, Y_test) = get_srcnn_rgb_cifar10_20000_dataset_part(train_part=0.1, test_part=0.1)
+        dataset_name = 'CIFAR-10 20000'
         # (X_train, Y_train), (X_test, Y_test) = get_pasadena_dataset_part(train_part=0.5, test_part=0.5)
+        # (X_train, Y_train), (X_test, Y_test) = get_hundred_dataset_part(train_part=1, test_part=1)
+        # dataset_name = 'HUNDRED 40'
+
         num_X_train, height_X_train, width_X_train, _ = X_train.shape
         num_X_test, height_X_test, width_X_test, _ = X_test.shape
         print_shape('X', X_train, X_test)
@@ -762,15 +768,18 @@ def fit_conv_improved():
     # making PSNR metric
     psnr_3_callback = metrics.MetricsCallbackPSNR(X=(X_train, X_test), Y=(Y_train, Y_test), batch_size=batch_size)
     min_max_callback = metrics.MetricsCallbackMinMax(X=(X_train, X_test), Y=(Y_train, Y_test), batch_size=batch_size)
-    if not use_srcnn_rgb_mnist_dataset:
+    if not use_rgb_dataset:
         ssim_3_callback = metrics.MetricsCallbackSSIM(X=(X_train, X_test), Y=(Y_train, Y_test), batch_size=batch_size,
                                                       mode='L')
 
     use_saved = False
+    # path_to_model = 'models/srcnn-cifar10-20000-9_3_1_5-64_32_32-20epochs-he_uniform-custom_relu.h5'
+    path_to_model = 'results/' + dataset_name + '/model/' + \
+                    'srcnn-cifar10-20000-9_3_1_5-64_32_32-20epochs-he_uniform-custom_relu.h5'
     if use_saved:
         # returns a compiled model
         # identical to the previous one
-        model = keras.models.load_model('models/srcnn.h5', custom_objects={'psnr_L': psnr_L})
+        model = keras.models.load_model(path_to_model, custom_objects={'psnr_L': psnr_L})
     else:
         print('SRCNN fitting...')
         from keras import backend
@@ -789,7 +798,7 @@ def fit_conv_improved():
         # 64, 2 | 9, 3, 1, 5 | 32, 16, 16 | [24.4]
 
         batch_size = 64  # 128  # in each iteration we consider 128 training examples at once
-        num_epochs = 20
+        num_epochs = 2
         f_1, f_2, f_2_2, f_3 = 9, 3, 1, 5  # 9, 3, 1, 5 (32, 16, 16) [24.4]
         n_1, n_2, n_2_2 = 64, 32, 32  # 32, 16, 16 # 64, 32, 32  #
 
@@ -839,8 +848,10 @@ def fit_conv_improved():
         model = Model(inputs=inp, outputs=out)
 
         from keras.utils import plot_model
-        plot_model(model, to_file='saved_images/SRCNN-model.png', show_shapes=True, show_layer_names=True, rankdir='TB')
-        plot_model(model, to_file='saved_images/SRCNN-model.svg', show_shapes=True, show_layer_names=True, rankdir='TB')
+        plot_model(model, to_file='results/' + dataset_name + '/model/SRCNN-model.png', show_shapes=True,
+                   show_layer_names=True, rankdir='TB')
+        plot_model(model, to_file='results/' + dataset_name + '/model/SRCNN-model.svg', show_shapes=True,
+                   show_layer_names=True, rankdir='TB')
 
         # keras.optimizers.Nadam(lr=0.002, beta_1=0.9, beta_2=0.999, epsilon=1e-08, schedule_decay=0.004, decay=? 1e-6,
         # momentum=? 0.9, nesterov=True)
@@ -878,10 +889,12 @@ def fit_conv_improved():
 
         # exit()
         # saving the model
-        path = 'models/srcnn-cifar10-20000-9_3_1_5-64_32_32-20epochs-he_uniform-custom_relu.h5'
-        print('saving model to ' + path + '...')
-        model.save(path)
-        print('model ' + path + ' saved')
+        # path = 'models/srcnn-cifar10-20000-9_3_1_5-64_32_32-20epochs-he_uniform-custom_relu.h5'
+
+        # print('saving model to ' + path_to_model + '...')
+        # model.save(path_to_model)
+        # print('model ' + path_to_model + ' saved')
+
         # creates a HDF5 file 'models/dense-improved.h5'
         # del model  # deletes the existing model
 
@@ -896,7 +909,7 @@ def fit_conv_improved():
     print('PSNR history :', psnr_3_callback.history)
     print('PSNR epoch history : ', psnr_3_callback.epoch_history)
 
-    if not use_srcnn_rgb_mnist_dataset:
+    if not use_rgb_dataset:
         print('SSIM history :', ssim_3_callback.history)
         print('SSIM epoch history : ', ssim_3_callback.epoch_history)
 
@@ -920,7 +933,7 @@ def fit_conv_improved():
         print('prediction image ' + str(i) + ' :')
 
         # prediction[0].resize((height_Y_test, width_Y_test))
-        if use_srcnn_rgb_mnist_dataset:
+        if use_rgb_dataset:
             prediction.resize((num_Y_test, height_Y_test, width_Y_test, depth))
         else:
             prediction.resize((num_Y_test, height_Y_test, width_Y_test))
@@ -930,18 +943,18 @@ def fit_conv_improved():
         print_ndarray_info(prediction[i])
 
         from image_handler import get_image
-        if use_srcnn_rgb_mnist_dataset:
+        if use_rgb_dataset:
             prediction_image = get_image(prediction[i], mode='RGB')
         else:
             prediction_image = get_image(prediction[i], mode='L')
         if show_images:
             prediction_image.show(title='Prediction 28')
-        prediction_image.save('saved_images/' + str(i) + '_prediction.png')
+        prediction_image.save('results/' + dataset_name + '/test/' + str(i) + '_prediction.png')
 
         # ZOOMED OUT IMAGE
         print('zoomed out image ' + str(i) + ':')
 
-        if use_srcnn_rgb_mnist_dataset:
+        if use_rgb_dataset:
             X_test.resize((num_X_test, height_X_test, width_X_test, depth))
         else:
             X_test.resize((num_X_test, height_X_test, width_X_test))
@@ -949,7 +962,7 @@ def fit_conv_improved():
         print_ndarray_info(X_test)
         print_ndarray_info(X_test[i])
 
-        if use_srcnn_rgb_mnist_dataset:
+        if use_rgb_dataset:
             zoomed_out_image = get_image(X_test[i], mode='RGB')
         else:
             zoomed_out_image = get_image(X_test[i], mode='L')
@@ -958,7 +971,7 @@ def fit_conv_improved():
         # ORIGINAL IMAGE
         print('original image ' + str(i) + ':')
 
-        if use_srcnn_rgb_mnist_dataset:
+        if use_rgb_dataset:
             Y_test.resize((num_Y_test, height_Y_test, width_Y_test, depth))
         else:
             Y_test.resize((num_Y_test, height_Y_test, width_Y_test))
@@ -966,13 +979,13 @@ def fit_conv_improved():
         print_ndarray_info(Y_test)
         print_ndarray_info(Y_test[i])
 
-        if use_srcnn_rgb_mnist_dataset:
+        if use_rgb_dataset:
             original_image = get_image(Y_test[i], mode='RGB')
         else:
             original_image = get_image(Y_test[i], mode='L')
         if show_images:
             original_image.show(title='ORIGINAL IMAGE 28')
-        original_image.save('saved_images/' + str(i) + '_original.png')
+        original_image.save('results/' + dataset_name + '/test/' + str(i) + '_original.png')
 
         from image_handler import get_images_difference_metrics
         psnr, ssim, mse = get_images_difference_metrics(original_image, prediction_image)
@@ -1019,10 +1032,40 @@ def test(model, X_test, Y_test, verbose=0):
     model.evaluate(X_test, Y_test, verbose=verbose)
 
 
-def run(data):
+def run(image_data):
     print('neural network running...')
 
-    return data
+    # preparing image_data
+    test = np.array([image_data])
+    test = test.astype('float32')
+    test /= 255  # np.max(Y_test)  # Normalise data to [0, 1] range
+    test = test.reshape(1, 3, 32, 32)
+
+    # loading model
+    path_to_model = 'models/srcnn-cifar10-20000-9_3_1_5-64_32_32-20epochs-he_uniform-custom_relu.h5'
+    model = keras.models.load_model(path_to_model, custom_objects={
+        'psnr_3_channels': psnr_3_channels,
+        'custom_relu': custom_relu,
+    })  # , custom_objects={'psnr_L': psnr_L})
+    print(model.summary())
+
+    batch_size = 64
+    prediction = model.predict(test, batch_size=batch_size, verbose=1)
+
+    from keras.backend import clear_session
+    clear_session()
+
+    prediction.resize((1, 32, 32, 3))
+    prediction = np.rint(prediction * 255).astype('uint8')
+    print_ndarray_info(prediction, verbose=True)  # reshape((3, 4)) => a ; resize((2,6)) => on place
+    prediction_image_data = prediction[0]
+    print_ndarray_info(prediction_image_data, verbose=True)
+
+    from image_handler import get_image
+    prediction_image = get_image(prediction_image_data, mode='RGB')
+    # prediction_image.show()
+
+    return prediction_image_data
 
     # list to ndarray : np.array(list) # dtype=np.uint8, dtype=np.float32
     # ndarray to list : ndarray.tolist()
@@ -1066,8 +1109,12 @@ def pickle_mnist():
     # fitted_model = pickle.load(neural_network_model_file)
 
 
-def print_ndarray_info(ndarray):
-    print(ndarray.ndim, ndarray.shape, ndarray.size, ndarray.dtype, ndarray.itemsize)
+def print_ndarray_info(ndarray, verbose=False):
+    if verbose:
+        print('ndim :', ndarray.ndim, ' shape :', ndarray.shape, ' size :', ndarray.size, ' dtype :', ndarray.dtype,
+              ' itemsize :', ndarray.itemsize)
+    else:
+        print(ndarray.ndim, ndarray.shape, ndarray.size, ndarray.dtype, ndarray.itemsize)
 
 
 def handle_time_range(secs):

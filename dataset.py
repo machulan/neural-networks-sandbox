@@ -228,6 +228,56 @@ def make_pasadena_dataset():
     print('pasadena-dataset.npz saved')
 
 
+def make_hundred_dataset():
+    print('making HUNDRED dataset...')
+
+    from image_handler import get_image_data, get_image, zoom_out_image, zoom_up_image
+
+    path = 'saved_images/Hundred Dataset/'
+    size = 53
+    result = []
+
+    for i in range(size):
+        filename = path + str(1 + i) + '.png'
+        image = Image.open(filename)
+        print('Image', filename.rpartition('/')[2], 'opened')
+        image_data = get_image_data(image)
+        result.append(image_data)
+
+    print('making Y_train and Y_test...')
+    train_size = 40
+    Y_train, Y_test = result[:train_size], result[train_size:]
+
+    # X_train
+    print('making X_train list...')
+    X_train = []
+    for item in Y_train:
+        image_data = item  # .tolist()
+        image = get_image(image_data, mode='RGB')
+        zoomed_out_image = zoom_out_image(image, times=2)
+        zoomed_up_image = zoom_up_image(zoomed_out_image, times=2)
+        zoomed_up_image_data = get_image_data(zoomed_up_image)
+        X_train.append(zoomed_up_image_data)
+
+    # X_test
+    print('making X_test list...')
+    X_test = []
+    for item in Y_test:
+        image_data = item  # .tolist()
+        image = get_image(image_data, mode='RGB')
+        zoomed_out_image = zoom_out_image(image, times=2)
+        zoomed_up_image = zoom_up_image(zoomed_out_image, times=2)
+        zoomed_up_image_data = get_image_data(zoomed_up_image)
+        X_test.append(zoomed_up_image_data)
+
+    dtype = 'uint8'
+    dataset = (np.array(X_train, dtype=dtype), np.array(Y_train, dtype=dtype)), \
+              (np.array(X_test, dtype=dtype), np.array(Y_test, dtype=dtype))
+    print('saving dataset to hundred-dataset.npz...')
+    np.savez_compressed('datasets/hundred-dataset.npz', dataset)
+    print('hundred-dataset.npz saved')
+
+
 def handle_mnist():
     from image_handler import get_image, get_image_data, zoom_out_image
     from keras.datasets import mnist
@@ -370,6 +420,19 @@ def show_pasadena_dataset_example(count=1):
         # get_image(Y_train[i], mode='RGB').save('saved_images/pasadena_Y_train[0].png')
 
 
+def show_hundred_dataset_example(count=1):
+    (X_train, Y_train), (X_test, Y_test) = get_hundred_dataset()
+    from image_handler import get_image
+    for i in range(count):
+        get_image(X_train[i], mode='RGB').show()
+        get_image(Y_train[i], mode='RGB').show()
+        get_image(X_test[i], mode='RGB').show()
+        get_image(Y_test[i], mode='RGB').show()
+
+        # get_image(X_train[i], mode='RGB').save('saved_images/pasadena_X_train[0].png')
+        # get_image(Y_train[i], mode='RGB').save('saved_images/pasadena_Y_train[0].png')
+
+
 def get_dataset_part(dataset, train_part=1.0, test_part=1.0):
     validate_value_in_range('train_part', train_part, 0, 1)
     validate_value_in_range('test_part', test_part, 0, 1)
@@ -457,6 +520,17 @@ def get_pasadena_dataset_part(train_part=1.0, test_part=1.0):
     return get_dataset_part(get_pasadena_dataset(), train_part=train_part, test_part=test_part)
 
 
+def get_hundred_dataset(path='datasets/hundred-dataset.npz'):
+    print('getting HUNDRED dataset ...')  # (10000, 1760, 1168, 3) (10000, 32, 32, 3)
+    print('opening ' + path + '...')
+    npzfile = np.load(path)
+    return npzfile['arr_0']
+
+
+def get_hundred_dataset_part(train_part=1.0, test_part=1.0):
+    return get_dataset_part(get_hundred_dataset(), train_part=train_part, test_part=test_part)
+
+
 if __name__ == '__main__':
     print('dataset module running...')
     # make_srcnn_dataset_based_on_mnist()
@@ -476,3 +550,6 @@ if __name__ == '__main__':
 
     # make_pasadena_dataset()
     # show_pasadena_dataset_example()
+
+    # make_hundred_dataset()
+    # show_hundred_dataset_example()
