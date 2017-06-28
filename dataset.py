@@ -233,7 +233,7 @@ def make_hundred_dataset():
 
     from image_handler import get_image_data, get_image, zoom_out_image, zoom_up_image
 
-    path = 'saved_images/Hundred Dataset/'
+    path = 'images/Hundred Dataset/images/'
     size = 53
     result = []
 
@@ -274,8 +274,77 @@ def make_hundred_dataset():
     dataset = (np.array(X_train, dtype=dtype), np.array(Y_train, dtype=dtype)), \
               (np.array(X_test, dtype=dtype), np.array(Y_test, dtype=dtype))
     print('saving dataset to hundred-dataset.npz...')
-    np.savez_compressed('datasets/hundred-dataset.npz', dataset)
+    np.savez('datasets/hundred-dataset.npz', dataset)  # _compressed
     print('hundred-dataset.npz saved')
+
+
+def make_100_86_dataset():
+    print('making 100-86 dataset...')
+
+    from image_handler import get_image_data, get_image, zoom_out_image, zoom_up_image
+
+    path = 'images/Hundred Dataset/images/'
+    size = 53
+    result = []
+
+    for i in range(size):
+        filename = path + str(1 + i) + '.png'
+        image = Image.open(filename)
+        print('Image', filename.rpartition('/')[2], 'opened')
+        image_data = get_image_data(image)
+        result.append(image_data)
+
+    print('making Y_train (100x100) and Y_test (100x100)...')
+    train_size = 40
+    Y_train, Y_test = result[:train_size], result[train_size:]
+
+    # X_train
+    print('making X_train list from Y_train (100x100)...')
+    X_train = []
+    for item in Y_train:
+        image_data = item  # .tolist()
+        image = get_image(image_data, mode='RGB')
+        zoomed_out_image = zoom_out_image(image, times=2)
+        zoomed_up_image = zoom_up_image(zoomed_out_image, times=2)
+        zoomed_up_image_data = get_image_data(zoomed_up_image)
+        X_train.append(zoomed_up_image_data)
+
+    # X_test
+    print('making X_test list from Y_test (100x100)...')
+    X_test = []
+    for item in Y_test:
+        image_data = item  # .tolist()
+        image = get_image(image_data, mode='RGB')
+        zoomed_out_image = zoom_out_image(image, times=2)
+        zoomed_up_image = zoom_up_image(zoomed_out_image, times=2)
+        zoomed_up_image_data = get_image_data(zoomed_up_image)
+        X_test.append(zoomed_up_image_data)
+
+    k = 100 / 86
+    print('making Y_train (86x86)...')
+    temp = []
+    for image_data in Y_train:
+        image = get_image(image_data, mode='RGB')
+        zoomed_out_image = zoom_out_image(image, times=k)
+        zoomed_out_image_data = get_image_data(zoomed_out_image)
+        temp.append(zoomed_out_image_data)
+    Y_train = temp
+
+    print('making Y_test (86x86)...')
+    temp = []
+    for image_data in Y_test:
+        image = get_image(image_data, mode='RGB')
+        zoomed_out_image = zoom_out_image(image, times=k)
+        zoomed_out_image_data = get_image_data(zoomed_out_image)
+        temp.append(zoomed_out_image_data)
+    Y_test = temp
+
+    dtype = 'uint8'
+    dataset = (np.array(X_train, dtype=dtype), np.array(Y_train, dtype=dtype)), \
+              (np.array(X_test, dtype=dtype), np.array(Y_test, dtype=dtype))
+    print('saving dataset to 100-86-dataset.npz...')
+    np.savez('datasets/100-86-dataset.npz', dataset)  # _compressed
+    print('100-86-dataset.npz saved')
 
 
 def handle_mnist():
@@ -424,13 +493,30 @@ def show_hundred_dataset_example(count=1):
     (X_train, Y_train), (X_test, Y_test) = get_hundred_dataset()
     from image_handler import get_image
     for i in range(count):
-        get_image(X_train[i], mode='RGB').show()
-        get_image(Y_train[i], mode='RGB').show()
+        # get_image(X_train[i], mode='RGB').show()
+        # get_image(Y_train[i], mode='RGB').show()
         get_image(X_test[i], mode='RGB').show()
         get_image(Y_test[i], mode='RGB').show()
 
         # get_image(X_train[i], mode='RGB').save('saved_images/pasadena_X_train[0].png')
         # get_image(Y_train[i], mode='RGB').save('saved_images/pasadena_Y_train[0].png')
+
+
+def show_dataset_example(dataset, count=1):
+    (X_train, Y_train), (X_test, Y_test) = dataset
+    from image_handler import get_image
+    for i in range(count):
+        # get_image(X_train[i], mode='RGB').show()
+        # get_image(Y_train[i], mode='RGB').show()
+        get_image(X_test[i], mode='RGB').show()
+        get_image(Y_test[i], mode='RGB').show()
+
+        # get_image(X_train[i], mode='RGB').save('saved_images/pasadena_X_train[0].png')
+        # get_image(Y_train[i], mode='RGB').save('saved_images/pasadena_Y_train[0].png')
+
+
+def show_100_86_dataset_example(count=1):
+    show_dataset_example(get_100_86_dataset(), count=count)
 
 
 def get_dataset_part(dataset, train_part=1.0, test_part=1.0):
@@ -521,7 +607,7 @@ def get_pasadena_dataset_part(train_part=1.0, test_part=1.0):
 
 
 def get_hundred_dataset(path='datasets/hundred-dataset.npz'):
-    print('getting HUNDRED dataset ...')  # (10000, 1760, 1168, 3) (10000, 32, 32, 3)
+    print('getting HUNDRED dataset ...')  # (40, 100, 100, 3) (13, 100, 100, 3)
     print('opening ' + path + '...')
     npzfile = np.load(path)
     return npzfile['arr_0']
@@ -529,6 +615,17 @@ def get_hundred_dataset(path='datasets/hundred-dataset.npz'):
 
 def get_hundred_dataset_part(train_part=1.0, test_part=1.0):
     return get_dataset_part(get_hundred_dataset(), train_part=train_part, test_part=test_part)
+
+
+def get_100_86_dataset(path='datasets/100-86-dataset.npz'):
+    print('getting 100-86 dataset ...')  # (40, 100, 100, 3) -> (40, 86, 86, 3) | (13, 100, 100, 3) -> (13, 86, 86, 3)
+    print('opening ' + path + '...')
+    npzfile = np.load(path)
+    return npzfile['arr_0']
+
+
+def get_100_86_dataset_part(train_part=1.0, test_part=1.0):
+    return get_dataset_part(get_100_86_dataset(), train_part=train_part, test_part=test_part)
 
 
 if __name__ == '__main__':
@@ -552,4 +649,7 @@ if __name__ == '__main__':
     # show_pasadena_dataset_example()
 
     # make_hundred_dataset()
-    # show_hundred_dataset_example()
+    # show_hundred_dataset_example(count=2)
+
+    # make_100_86_dataset()
+    # show_100_86_dataset_example(count=3)

@@ -13,7 +13,8 @@ from scipy.sparse.data import _data_matrix
 from dataset import get_mnist_dataset, get_mnist_dataset_part, get_srcnn_mnist_dataset, get_srcnn_mnist_dataset_part, \
     get_srcnn_rgb_mnist_dataset, get_srcnn_rgb_mnist_dataset_part, get_srcnn_rgb_cifar10_dataset, \
     get_srcnn_rgb_cifar10_dataset_part, get_srcnn_rgb_cifar10_20000_dataset, get_srcnn_rgb_cifar10_20000_dataset_part, \
-    get_pasadena_dataset, get_pasadena_dataset_part, get_hundred_dataset, get_hundred_dataset_part, get_dataset_part
+    get_pasadena_dataset, get_pasadena_dataset_part, get_hundred_dataset, get_hundred_dataset_part, \
+    get_100_86_dataset, get_100_86_dataset_part, get_dataset_part
 import metrics
 
 
@@ -47,7 +48,7 @@ def print_shape(name, train, test):
           'depth : ' + depth_test + ' ]', sep=', ')
 
 
-def plot_results(train_result, test_result):
+def plot_results(train_result, test_result, dataset_name, show=False):
     print('plotting train and test results...')
     import matplotlib.pyplot as plt
     from matplotlib.ticker import MaxNLocator
@@ -88,11 +89,65 @@ def plot_results(train_result, test_result):
     # ax.xaxis.set_major_locator(MaxNLocator(integer=True))
     plt.subplots_adjust(top=0.9, bottom=0.10, left=0.10, right=0.90, hspace=0.5,
                         wspace=0.4)
-    # plt.show()
-    print('saving train-and-test-results.png')
-    plt.savefig('saved_images/train-and-test-results.png')
-    print('saving train-and-test-results.svg')
-    plt.savefig('saved_images/train-and-test-results.svg')
+    if show:
+        plt.show()
+    print('saving results/' + dataset_name + '/plots/train-and-test-results.png')
+    plt.savefig('results/' + dataset_name + '/plots/train-and-test-results.png')
+    print('saving results/' + dataset_name + '/plots/train-and-test-results.svg')
+    plt.savefig('results/' + dataset_name + '/plots/train-and-test-results.svg')
+
+
+def plot_psnr_3_channels_results(train_result, test_result, dataset_name, show=False):
+    print('plotting psrn_3_channels train and test results...')
+    import matplotlib.pyplot as plt
+    from matplotlib.ticker import MaxNLocator
+
+    epoch, history = train_result.epoch, train_result.history
+    epoch = [i + 1 for i in epoch]
+
+    # subplots = [221, 222, 223]
+    history_keys = sorted(history.keys())
+    history_keys.remove('loss')
+    test_result_dict = {'loss': test_result[0]}
+    test_result_dict.update(zip(history_keys, test_result[1:]))
+
+    metric = 'psnr_3_channels'
+    values = history[metric]
+
+    plt.title('Пиковое отношение сигнала к шуму')
+    # ro, r--, bs, g^, -, -., :
+    plt.figure(2, figsize=(7.0, 4.0)) # 10 6
+    # ax = plt.figure(1).gca()  # plt.figure(1)
+
+    # plt.subplot(subplots[i])
+    # plt.subplot(221)
+    plt.title('Пиковое отношение сигнала к шуму')
+    plt.xlabel('Итерации')
+    plt.ylabel('Среднее PSNR')
+    # train result
+    plt.plot(epoch, values, 'r')
+    min_value, max_value, test_result_item = min(values), max(values), test_result_dict[metric]
+    dy = 0
+    # max train result
+    plt.plot(epoch, [max_value] * len(epoch), 'r:')
+    plt.text(epoch[-2], max_value + dy, str(round(max_value, 4)))
+    # min train result
+    plt.plot(epoch, [min_value] * len(epoch), 'r:')
+    plt.text(epoch[-2], min_value + dy, str(round(min_value, 4)))
+    # test result
+    plt.plot(epoch, [test_result_item] * len(epoch), 'b')
+    plt.text(epoch[0], test_result_item + dy, str(round(test_result_item, 4)))
+
+    # ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+    plt.subplots_adjust(top=0.9, bottom=0.15, left=0.10, right=0.90, hspace=0.5,
+                        wspace=0.4)
+    if show:
+        plt.show()
+    path = '/plots/psnr_3_channels'
+    print('saving results/' + dataset_name + path + '.png')
+    plt.savefig('results/' + dataset_name + path + '.png')
+    print('saving results/' + dataset_name + path + '.svg')
+    plt.savefig('results/' + dataset_name + path + '.svg')
 
 
 def mse_L(y_true, y_pred):
@@ -683,7 +738,7 @@ def fit_conv():
         original_image.save('saved_images/' + str(i) + '_original.png')
 
 
-def fit_conv_improved():
+def fit_conv_srcnn():
     print('SRCNN running...')
 
     from keras.layers import Input, Conv1D, Conv2D, Conv3D
@@ -712,7 +767,7 @@ def fit_conv_improved():
         depth = c = 3
         # (X_train, Y_train), (X_test, Y_test) = get_srcnn_rgb_mnist_dataset_part(train_part=0.1, test_part=0.1)
         # (X_train, Y_train), (X_test, Y_test) = get_srcnn_rgb_cifar10_dataset_part(train_part=1, test_part=1)
-        (X_train, Y_train), (X_test, Y_test) = get_srcnn_rgb_cifar10_20000_dataset_part(train_part=0.1, test_part=0.1)
+        (X_train, Y_train), (X_test, Y_test) = get_srcnn_rgb_cifar10_20000_dataset_part(train_part=0.01, test_part=0.1)
         dataset_name = 'CIFAR-10 20000'
         # (X_train, Y_train), (X_test, Y_test) = get_pasadena_dataset_part(train_part=0.5, test_part=0.5)
         # (X_train, Y_train), (X_test, Y_test) = get_hundred_dataset_part(train_part=1, test_part=1)
@@ -904,7 +959,7 @@ def fit_conv_improved():
 
     # making plot
     if not use_saved:
-        plot_results(train_result, test_result)
+        plot_results(train_result, test_result, dataset_name)
 
     print('PSNR history :', psnr_3_callback.history)
     print('PSNR epoch history : ', psnr_3_callback.epoch_history)
@@ -922,7 +977,1070 @@ def fit_conv_improved():
     from keras.backend import clear_session
     clear_session()
 
-    normalise_prediction = True
+    normalise_prediction = False
+    if normalise_prediction:
+        prediction = normalise_ndarrrays(prediction)
+
+    show_images = False
+    for i in range(10):
+        print()
+        # PREDICTION IMAGE
+        print('prediction image ' + str(i) + ' :')
+
+        # prediction[0].resize((height_Y_test, width_Y_test))
+        if use_rgb_dataset:
+            prediction.resize((num_Y_test, height_Y_test, width_Y_test, depth))
+        else:
+            prediction.resize((num_Y_test, height_Y_test, width_Y_test))
+        prediction = np.rint(prediction * 255).astype('uint8')
+        # print(prediction[0])
+        print_ndarray_info(prediction)  # reshape((3, 4)) => a ; resize((2,6)) => on place
+        print_ndarray_info(prediction[i])
+
+        from image_handler import get_image
+        if use_rgb_dataset:
+            prediction_image = get_image(prediction[i], mode='RGB')
+        else:
+            prediction_image = get_image(prediction[i], mode='L')
+        if show_images:
+            prediction_image.show(title='Prediction 28')
+        prediction_image.save('results/' + dataset_name + '/test/' + str(i) + '_prediction.png')
+
+        # ZOOMED OUT IMAGE
+        print('zoomed out image ' + str(i) + ':')
+
+        if use_rgb_dataset:
+            X_test.resize((num_X_test, height_X_test, width_X_test, depth))
+        else:
+            X_test.resize((num_X_test, height_X_test, width_X_test))
+        X_test = np.rint(X_test * 255).astype('uint8')
+        print_ndarray_info(X_test)
+        print_ndarray_info(X_test[i])
+
+        if use_rgb_dataset:
+            zoomed_out_image = get_image(X_test[i], mode='RGB')
+        else:
+            zoomed_out_image = get_image(X_test[i], mode='L')
+        # zoomed_out_image.show(title='Zoomed out 14')
+
+        # ORIGINAL IMAGE
+        print('original image ' + str(i) + ':')
+
+        if use_rgb_dataset:
+            Y_test.resize((num_Y_test, height_Y_test, width_Y_test, depth))
+        else:
+            Y_test.resize((num_Y_test, height_Y_test, width_Y_test))
+        Y_test = np.rint(Y_test * 255).astype('uint8')
+        print_ndarray_info(Y_test)
+        print_ndarray_info(Y_test[i])
+
+        if use_rgb_dataset:
+            original_image = get_image(Y_test[i], mode='RGB')
+        else:
+            original_image = get_image(Y_test[i], mode='L')
+        if show_images:
+            original_image.show(title='ORIGINAL IMAGE 28')
+        original_image.save('results/' + dataset_name + '/test/' + str(i) + '_original.png')
+
+        from image_handler import get_images_difference_metrics
+        psnr, ssim, mse = get_images_difference_metrics(original_image, prediction_image)
+        psnr, ssim, mse = round(psnr, 4), round(ssim, 4), round(mse, 4)
+        print('PSNR : ' + str(psnr), 'SSIM : ' + str(ssim), 'MSE : ' + str(mse), sep=', ')
+
+
+        # inp = Input(shape=(depth, height_X_train, width_X_train))
+        # # inp = Input(shape=(depth, height_X_train, width_X_train))
+        # inp_norm = BatchNormalization(axis=1)(inp)
+        # conv_1 = Conv2D(conv_depth, (kernel_size, kernel_size), padding='same', kernel_initializer='he_uniform',
+        #                 # 'he_uniform'
+        #                 kernel_regularizer=l2(l2_lambda), activation='relu')(inp_norm)  # 'relu' sigmoid
+        # conv_1 = BatchNormalization(axis=1)(conv_1)
+        # conv_2 = Conv2D(conv_depth, (kernel_size, kernel_size), padding='same', kernel_initializer='he_uniform',
+        #                 # 'he_uniform',
+        #                 kernel_regularizer=l2(l2_lambda), activation='relu')(conv_1)  # 'relu'
+        # pool_1 = MaxPooling2D(pool_size=(pool_size, pool_size))(conv_2)
+        # drop_1 = Dropout(drop_prob_1)(pool_1)
+        # flat = Flatten()(drop_1)
+        # # hidden = Dense(hidden_size, kernel_initializer='glorot_uniform', kernel_regularizer=l2(l2_lambda), activation='relu')(
+        # #     flat)
+        # hidden = Dense(hidden_size, kernel_initializer='he_uniform', kernel_regularizer=l2(l2_lambda), activation='relu')(
+        #     flat)
+        # hidden = BatchNormalization(axis=1)(hidden)
+        # drop_2 = Dropout(drop_prob_2)(hidden)
+        # out = Dense(height_Y_train * width_Y_train, kernel_initializer='he_uniform', kernel_regularizer=l2(l2_lambda),
+        #             activation='relu')(
+        #     drop_2)  # activation='relu'
+        # out = Dense(10, init='glorot_uniform', W_regularizer=l2(l2_lambda), activation='relu')(inp)  # (hidden)  # activation='relu'
+
+        # hidden1 = Dense(hidden_size, activation='relu')(inp_norm)
+        # hidden2 = Dense(hidden_size, activation='relu')(hidden1)
+        # hidden3 = Dense(hidden_size, activation='tanh')(hidden2)
+        # out = Dense(height_Y_train * width_Y_train, activation='sigmoid')(hidden3)  # activation='relu'
+        # https://keras.io/activations/
+        # activation : relu, elu
+
+        # model = Model(inputs=inp, outputs=out)
+
+
+def fit_conv_srcnn_tf():
+    print('SRCNN tf running...')
+
+    from keras.layers import Input, Conv1D, Conv2D, Conv3D
+    from keras.models import Model
+    from keras.layers.normalization import BatchNormalization  # batch normalisation
+    from keras.regularizers import l2  # L2-regularisation
+    from keras.constraints import min_max_norm, max_norm
+    from keras.activations import relu
+
+    f_1 = 9
+    f_2 = 1
+    f_3 = 5
+    n_1 = 64
+    n_2 = 32
+    c = 1
+
+    batch_size = 64  # 128  # in each iteration we consider 128 training examples at once
+    num_epochs = 2  # we iterate twenty times over the entire training set
+    kernel_size = 3  # f_1, f_2, f_3
+    conv_depth = 32  # n_1, n_2
+    depth = 1  # c
+    l2_lambda = 0.0001
+
+    use_rgb_dataset = True
+    if use_rgb_dataset:
+        depth = c = 3
+        # (X_train, Y_train), (X_test, Y_test) = get_srcnn_rgb_mnist_dataset_part(train_part=0.1, test_part=0.1)
+        # (X_train, Y_train), (X_test, Y_test) = get_srcnn_rgb_cifar10_dataset_part(train_part=1, test_part=1)
+        (X_train, Y_train), (X_test, Y_test) = get_srcnn_rgb_cifar10_20000_dataset_part(train_part=1,
+                                                                                        test_part=1)
+        dataset_name = 'CIFAR-10 20000 tf'
+        # (X_train, Y_train), (X_test, Y_test) = get_pasadena_dataset_part(train_part=0.5, test_part=0.5)
+        # (X_train, Y_train), (X_test, Y_test) = get_hundred_dataset_part(train_part=1, test_part=1)
+        # dataset_name = 'HUNDRED 40'
+
+        num_X_train, height_X_train, width_X_train, _ = X_train.shape
+        num_X_test, height_X_test, width_X_test, _ = X_test.shape
+        print_shape('X', X_train, X_test)
+
+        num_Y_train, height_Y_train, width_Y_train, _ = Y_train.shape
+        num_Y_test, height_Y_test, width_Y_test, _ = Y_test.shape
+        print_shape('Y', Y_train, Y_test)
+
+        print('')
+    else:
+        depth = c = 1
+        (X_train, Y_train), (X_test, Y_test) = get_srcnn_mnist_dataset_part(train_part=0.005, test_part=0.1)
+
+        num_X_train, height_X_train, width_X_train = X_train.shape
+        num_X_test, height_X_test, width_X_test = X_test.shape
+        print_shape('X', X_train, X_test)
+
+        num_Y_train, height_Y_train, width_Y_train = Y_train.shape
+        num_Y_test, height_Y_test, width_Y_test = Y_test.shape
+        print_shape('Y', Y_train, Y_test)
+    # print(np.max(X_train), np.max(Y_train))
+    # print(np.max(X_test), np.max(Y_test))
+
+    # K.set_floatx('float64')
+    dataset_type = 'float32'
+    # print(K.floatx())
+
+    X_train = X_train.astype(dataset_type)
+    X_test = X_test.astype(dataset_type)
+    Y_train = Y_train.astype(dataset_type)
+    Y_test = Y_test.astype(dataset_type)
+
+    X_train /= 255  # np.max(X_train)  # Normalise data to [0, 1] range
+    X_test /= 255  # np.max(X_test)  # Normalise data ti [0, 1] range
+    Y_train /= 255  # np.max(Y_train)  # Normalise data to [0, 1] range
+    Y_test /= 255  # np.max(Y_test)  # Normalise data to [0, 1] range
+
+    # print(X_train[0])
+    # print(X_train.shape)
+    # exit()
+    reshape_dataset = False
+    if reshape_dataset:
+        X_train = X_train.reshape(num_X_train, depth, height_X_train, width_X_train)
+        X_test = X_test.reshape(num_X_test, depth, height_X_test, width_X_test)
+        Y_train = Y_train.reshape(num_Y_train, depth, height_Y_train,
+                                  width_Y_train)  # , height_Y_train * width_Y_train)
+        Y_test = Y_test.reshape(num_Y_test, depth, height_Y_test, width_Y_test)  # , height_Y_test * width_Y_test)
+
+    # print(np.max(X_train), np.max(Y_train))
+    # print(np.max(X_test), np.max(Y_test))
+    # making PSNR metric
+    psnr_3_callback = metrics.MetricsCallbackPSNR(X=(X_train, X_test), Y=(Y_train, Y_test),
+                                                  batch_size=batch_size)
+    min_max_callback = metrics.MetricsCallbackMinMax(X=(X_train, X_test), Y=(Y_train, Y_test),
+                                                     batch_size=batch_size)
+    if not use_rgb_dataset:
+        ssim_3_callback = metrics.MetricsCallbackSSIM(X=(X_train, X_test), Y=(Y_train, Y_test),
+                                                      batch_size=batch_size,
+                                                      mode='L')
+
+    use_saved = False
+    # path_to_model = 'models/srcnn-cifar10-20000-9_3_1_5-64_32_32-20epochs-he_uniform-custom_relu.h5'
+    path_to_model = 'results/' + dataset_name + '/model/' + \
+                    'srcnn-cifar10-20000-tf-20000images-9_3_1_5-64_32_32-40epochs-he_uniform-custom_relu.h5'
+    if use_saved:
+        # returns a compiled model
+        # identical to the previous one
+        model = keras.models.load_model(path_to_model, custom_objects={'psnr_L': psnr_L})
+    else:
+        print('SRCNN tf fitting...')
+        from keras import backend
+        # backend.set_image_dim_ordering('th')
+
+        # TODO kerner_initializer='he_uniform'
+
+        # f_1-f_2-f_3
+        # 9-1-5
+        # 9-3-5
+        # 9-5-5
+        # 9-1-1-5
+        # 9-3-1-5
+        # 9-5-1-5
+
+        # 64, 2 | 9, 3, 1, 5 | 32, 16, 16 | [24.4]
+
+        batch_size = 64  # 128  # in each iteration we consider 128 training examples at once
+        num_epochs = 40
+        f_1, f_2, f_2_2, f_3 = 9, 3, 1, 5  # 9, 3, 1, 5 (32, 16, 16) [24.4]
+        n_1, n_2, n_2_2 = 64, 32, 32  # 32, 16, 16 # 64, 32, 32  #
+
+        inp = Input(shape=(height_X_train, width_X_train, c))
+
+        # inp_norm = BatchNormalization(axis=1)(inp)
+
+        conv_1 = Conv2D(n_1, (f_1, f_1), padding='same', activation='relu', kernel_regularizer=l2(l2_lambda),
+                        kernel_initializer='he_uniform')(inp)
+
+        # conv_1 = BatchNormalization(axis=1)(conv_1)
+
+        conv_2 = Conv2D(n_2, (f_2, f_2), padding='same', activation='relu', kernel_regularizer=l2(l2_lambda),
+                        kernel_initializer='he_uniform')(conv_1)
+
+        conv_2 = Conv2D(n_2_2, (f_2_2, f_2_2), padding='same', activation='relu',
+                        kernel_regularizer=l2(l2_lambda),
+                        kernel_initializer='he_uniform')(  # custom_relu
+            conv_2)
+
+        # conv_2 = BatchNormalization(axis=1)(conv_2)
+
+        # conv_3 = Conv2D(c, (f_3, f_3), padding='same', activation=custom_relu, kernel_regularizer=l2(l2_lambda),
+        #                 kernel_constraint=max_norm(1.0))(conv_2)
+        conv_3 = Conv2D(c, (f_3, f_3), padding='same', activation=custom_relu,
+                        kernel_regularizer=l2(l2_lambda), )(
+            conv_2)
+        # kernel_constraint=max_norm(1.0))(conv_2)
+
+        # conv_1 = Conv2D(n_1, (f_1, f_1), padding='same', activation='relu')(inp)#, kernel_regularizer=l2(l2_lambda))(inp)
+        #
+        # # conv_1 = BatchNormalization(axis=1)(conv_1)
+        #
+        # conv_2 = Conv2D(n_2, (f_2, f_2), padding='same', activation='relu')(conv_1)#, kernel_regularizer=l2(l2_lambda))(conv_1)
+        #
+        # conv_3 = Conv2D(c, (f_3, f_3), padding='same', activation='relu')(conv_2)#, kernel_regularizer=l2(l2_lambda))(conv_2)
+
+        # conv_1 = Conv3D(n_1, (c, f_1, f_1), activation='relu', input_shape=(c, height_X_train, width_X_train))
+
+        # conv_1 = Conv3D(n_1, (c, f_1, f_1), activation='relu')(inp)
+        #
+        # conv_2 = Conv3D(n_2, (n_1, f_2, f_2), activation='relu')(conv_1)
+        #
+        # conv_3 = Conv3D(c, (n_2, f_3, f_3), activation='relu')(conv_2)
+        #
+        out = conv_3
+
+        # creating model
+        model = Model(inputs=inp, outputs=out)
+
+        from keras.utils import plot_model
+        plot_model(model, to_file='results/' + dataset_name + '/model/SRCNN-model.png', show_shapes=True,
+                   show_layer_names=True, rankdir='TB')
+        plot_model(model, to_file='results/' + dataset_name + '/model/SRCNN-model.svg', show_shapes=True,
+                   show_layer_names=True, rankdir='TB')
+
+        # keras.optimizers.Nadam(lr=0.002, beta_1=0.9, beta_2=0.999, epsilon=1e-08, schedule_decay=0.004, decay=? 1e-6,
+        # momentum=? 0.9, nesterov=True)
+        nadam = keras.optimizers.Nadam()  # lr=0.002, clipnorm=1.0, clipvalue=1.0)  # clipvalue=0.5 [-0.5, 0.5]
+
+        model.compile(loss='mean_squared_error',
+                      optimizer=nadam,  # 'nadam',
+                      metrics=['accuracy',
+                               # M.mean_absolute_error,
+                               # M.categorical_accuracy,
+                               # M.binary_accuracy,
+                               # M.top_k_categorical_accuracy,
+                               # M.mean_squared_logarithmic_error, # +++
+                               M.mean_squared_error,
+                               # mse_L
+                               # ssim_3_channels,
+                               psnr_3_channels
+                               ])
+        # #, psnr_3_channels])
+
+        print(model.summary())
+
+        train_result = model.fit(X_train, Y_train,  # Train the model using the training set...
+                                 batch_size=batch_size,  # nb_epoch=num_epochs, verbose=0,
+                                 epochs=num_epochs,
+                                 verbose=1,
+                                 validation_split=0.0,  # ...holding out 10% of the data for validation
+                                 callbacks=[
+                                     psnr_3_callback,
+                                     # ssim_3_callback,
+                                     min_max_callback,
+                                 ])
+
+        print_train_result(train_result)
+
+        # exit()
+        # saving the model
+        # path = 'models/srcnn-cifar10-20000-9_3_1_5-64_32_32-20epochs-he_uniform-custom_relu.h5'
+
+        print('saving model to ' + path_to_model + '...')
+        model.save(path_to_model)
+        print('model ' + path_to_model + ' saved')
+
+        # creates a HDF5 file 'models/dense-improved.h5'
+        # del model  # deletes the existing model
+
+    # getting results
+    test_result = model.evaluate(X_test, Y_test, verbose=1)  # Evaluate the trained model on the test set
+    print_test_result(test_result)
+
+    # making plot
+    if not use_saved:
+        plot_results(train_result, test_result, dataset_name, show=False)
+        plot_psnr_3_channels_results(train_result, test_result, dataset_name, show=False)
+
+    print('PSNR history :', psnr_3_callback.history)
+    print('PSNR epoch history : ', psnr_3_callback.epoch_history)
+
+    if not use_rgb_dataset:
+        print('SSIM history :', ssim_3_callback.history)
+        print('SSIM epoch history : ', ssim_3_callback.epoch_history)
+
+    print('MIN-MAX history :', min_max_callback.history)
+    print('MIN-MAX epoch history : ', min_max_callback.epoch_history)
+
+    prediction = model.predict(X_test, batch_size=batch_size, verbose=1)
+    print(model.summary())
+
+    from keras.backend import clear_session
+    clear_session()
+
+    normalise_prediction = False
+    if normalise_prediction:
+        prediction = normalise_ndarrrays(prediction)
+
+    show_images = False
+    for i in range(10):
+        print()
+        # PREDICTION IMAGE
+        print('prediction image ' + str(i) + ' :')
+
+        # prediction[0].resize((height_Y_test, width_Y_test))
+        if use_rgb_dataset:
+            prediction.resize((num_Y_test, height_Y_test, width_Y_test, depth))
+        else:
+            prediction.resize((num_Y_test, height_Y_test, width_Y_test))
+        prediction = np.rint(prediction * 255).astype('uint8')
+        # print(prediction[0])
+        print_ndarray_info(prediction)  # reshape((3, 4)) => a ; resize((2,6)) => on place
+        print_ndarray_info(prediction[i])
+
+        from image_handler import get_image
+        if use_rgb_dataset:
+            prediction_image = get_image(prediction[i], mode='RGB')
+        else:
+            prediction_image = get_image(prediction[i], mode='L')
+        if show_images:
+            prediction_image.show(title='Prediction 28')
+        prediction_image.save('results/' + dataset_name + '/test/' + str(i) + '_prediction.png')
+
+        # ZOOMED OUT IMAGE
+        print('zoomed out image ' + str(i) + ':')
+
+        if use_rgb_dataset:
+            X_test.resize((num_X_test, height_X_test, width_X_test, depth))
+        else:
+            X_test.resize((num_X_test, height_X_test, width_X_test))
+        X_test = np.rint(X_test * 255).astype('uint8')
+        print_ndarray_info(X_test)
+        print_ndarray_info(X_test[i])
+
+        if use_rgb_dataset:
+            zoomed_out_image = get_image(X_test[i], mode='RGB')
+        else:
+            zoomed_out_image = get_image(X_test[i], mode='L')
+        # zoomed_out_image.show(title='Zoomed out 14')
+
+        # ORIGINAL IMAGE
+        print('original image ' + str(i) + ':')
+
+        if use_rgb_dataset:
+            Y_test.resize((num_Y_test, height_Y_test, width_Y_test, depth))
+        else:
+            Y_test.resize((num_Y_test, height_Y_test, width_Y_test))
+        Y_test = np.rint(Y_test * 255).astype('uint8')
+        print_ndarray_info(Y_test)
+        print_ndarray_info(Y_test[i])
+
+        if use_rgb_dataset:
+            original_image = get_image(Y_test[i], mode='RGB')
+        else:
+            original_image = get_image(Y_test[i], mode='L')
+        if show_images:
+            original_image.show(title='ORIGINAL IMAGE 28')
+        original_image.save('results/' + dataset_name + '/test/' + str(i) + '_original.png')
+
+        from image_handler import get_images_difference_metrics
+        psnr, ssim, mse = get_images_difference_metrics(original_image, prediction_image)
+        psnr, ssim, mse = round(psnr, 4), round(ssim, 4), round(mse, 4)
+        print('PSNR : ' + str(psnr), 'SSIM : ' + str(ssim), 'MSE : ' + str(mse), sep=', ')
+
+
+        # inp = Input(shape=(depth, height_X_train, width_X_train))
+        # # inp = Input(shape=(depth, height_X_train, width_X_train))
+        # inp_norm = BatchNormalization(axis=1)(inp)
+        # conv_1 = Conv2D(conv_depth, (kernel_size, kernel_size), padding='same', kernel_initializer='he_uniform',
+        #                 # 'he_uniform'
+        #                 kernel_regularizer=l2(l2_lambda), activation='relu')(inp_norm)  # 'relu' sigmoid
+        # conv_1 = BatchNormalization(axis=1)(conv_1)
+        # conv_2 = Conv2D(conv_depth, (kernel_size, kernel_size), padding='same', kernel_initializer='he_uniform',
+        #                 # 'he_uniform',
+        #                 kernel_regularizer=l2(l2_lambda), activation='relu')(conv_1)  # 'relu'
+        # pool_1 = MaxPooling2D(pool_size=(pool_size, pool_size))(conv_2)
+        # drop_1 = Dropout(drop_prob_1)(pool_1)
+        # flat = Flatten()(drop_1)
+        # # hidden = Dense(hidden_size, kernel_initializer='glorot_uniform', kernel_regularizer=l2(l2_lambda), activation='relu')(
+        # #     flat)
+        # hidden = Dense(hidden_size, kernel_initializer='he_uniform', kernel_regularizer=l2(l2_lambda), activation='relu')(
+        #     flat)
+        # hidden = BatchNormalization(axis=1)(hidden)
+        # drop_2 = Dropout(drop_prob_2)(hidden)
+        # out = Dense(height_Y_train * width_Y_train, kernel_initializer='he_uniform', kernel_regularizer=l2(l2_lambda),
+        #             activation='relu')(
+        #     drop_2)  # activation='relu'
+        # out = Dense(10, init='glorot_uniform', W_regularizer=l2(l2_lambda), activation='relu')(inp)  # (hidden)  # activation='relu'
+
+        # hidden1 = Dense(hidden_size, activation='relu')(inp_norm)
+        # hidden2 = Dense(hidden_size, activation='relu')(hidden1)
+        # hidden3 = Dense(hidden_size, activation='tanh')(hidden2)
+        # out = Dense(height_Y_train * width_Y_train, activation='sigmoid')(hidden3)  # activation='relu'
+        # https://keras.io/activations/
+        # activation : relu, elu
+
+        # model = Model(inputs=inp, outputs=out)
+
+
+def fit_conv_improved():
+    print('SRCNN running...')
+
+    from keras.layers import Input, Conv1D, Conv2D, Conv3D
+    from keras.models import Model
+    from keras.layers.normalization import BatchNormalization  # batch normalisation
+    from keras.regularizers import l2  # L2-regularisation
+    from keras.constraints import min_max_norm, max_norm
+    from keras.activations import relu
+
+    f_1 = 9
+    f_2 = 1
+    f_3 = 5
+    n_1 = 64
+    n_2 = 32
+    c = 1
+
+    batch_size = 64  # 128  # in each iteration we consider 128 training examples at once
+    num_epochs = 2  # we iterate twenty times over the entire training set
+    kernel_size = 3  # f_1, f_2, f_3
+    conv_depth = 32  # n_1, n_2
+    depth = 1  # c
+    l2_lambda = 0.0001
+
+    use_rgb_dataset = True
+    if use_rgb_dataset:
+        depth = c = 3
+        # (X_train, Y_train), (X_test, Y_test) = get_srcnn_rgb_mnist_dataset_part(train_part=0.1, test_part=0.1)
+        # (X_train, Y_train), (X_test, Y_test) = get_srcnn_rgb_cifar10_dataset_part(train_part=1, test_part=1)
+        # (X_train, Y_train), (X_test, Y_test) = get_srcnn_rgb_cifar10_20000_dataset_part(train_part=0.01, test_part=0.1)
+        # dataset_name = 'CIFAR-10 20000'
+        # (X_train, Y_train), (X_test, Y_test) = get_pasadena_dataset_part(train_part=0.5, test_part=0.5)
+        # (X_train, Y_train), (X_test, Y_test) = get_hundred_dataset_part(train_part=1, test_part=1)
+        # dataset_name = 'HUNDRED 40'
+        (X_train, Y_train), (X_test, Y_test) = get_100_86_dataset_part(train_part=1, test_part=1)
+        dataset_name = '100-86 40'
+
+        num_X_train, height_X_train, width_X_train, _ = X_train.shape
+        num_X_test, height_X_test, width_X_test, _ = X_test.shape
+        print_shape('X', X_train, X_test)
+
+        num_Y_train, height_Y_train, width_Y_train, _ = Y_train.shape
+        num_Y_test, height_Y_test, width_Y_test, _ = Y_test.shape
+        print_shape('Y', Y_train, Y_test)
+
+        print('')
+    else:
+        depth = c = 1
+        (X_train, Y_train), (X_test, Y_test) = get_srcnn_mnist_dataset_part(train_part=0.1, test_part=1)
+
+        num_X_train, height_X_train, width_X_train = X_train.shape
+        num_X_test, height_X_test, width_X_test = X_test.shape
+        print_shape('X', X_train, X_test)
+
+        num_Y_train, height_Y_train, width_Y_train = Y_train.shape
+        num_Y_test, height_Y_test, width_Y_test = Y_test.shape
+        print_shape('Y', Y_train, Y_test)
+    # print(np.max(X_train), np.max(Y_train))
+    # print(np.max(X_test), np.max(Y_test))
+
+    # K.set_floatx('float64')
+    dataset_type = 'float32'
+    # print(K.floatx())
+
+    X_train = X_train.astype(dataset_type)
+    X_test = X_test.astype(dataset_type)
+    Y_train = Y_train.astype(dataset_type)
+    Y_test = Y_test.astype(dataset_type)
+
+    X_train /= 255  # np.max(X_train)  # Normalise data to [0, 1] range
+    X_test /= 255  # np.max(X_test)  # Normalise data ti [0, 1] range
+    Y_train /= 255  # np.max(Y_train)  # Normalise data to [0, 1] range
+    Y_test /= 255  # np.max(Y_test)  # Normalise data to [0, 1] range
+
+    # print(X_train[0])
+    # print(X_train.shape)
+    # exit()
+    reshape_dataset = False
+    if reshape_dataset:
+        X_train = X_train.reshape(num_X_train, depth, height_X_train, width_X_train)
+        X_test = X_test.reshape(num_X_test, depth, height_X_test, width_X_test)
+        Y_train = Y_train.reshape(num_Y_train, depth, height_Y_train,
+                                  width_Y_train)  # , height_Y_train * width_Y_train)
+        Y_test = Y_test.reshape(num_Y_test, depth, height_Y_test, width_Y_test)  # , height_Y_test * width_Y_test)
+
+    # print(np.max(X_train), np.max(Y_train))
+    # print(np.max(X_test), np.max(Y_test))
+    # making PSNR metric
+    psnr_3_callback = metrics.MetricsCallbackPSNR(X=(X_train, X_test), Y=(Y_train, Y_test),
+                                                  batch_size=batch_size)
+    min_max_callback = metrics.MetricsCallbackMinMax(X=(X_train, X_test), Y=(Y_train, Y_test),
+                                                     batch_size=batch_size)
+    if not use_rgb_dataset:
+        ssim_3_callback = metrics.MetricsCallbackSSIM(X=(X_train, X_test), Y=(Y_train, Y_test),
+                                                      batch_size=batch_size,
+                                                      mode='L')
+
+    use_saved = False
+    # path_to_model = 'models/srcnn-cifar10-20000-9_3_1_5-64_32_32-20epochs-he_uniform-custom_relu.h5'
+    path_to_model = 'results/' + dataset_name + '/model/' + \
+                    'srcnn-cifar10-20000-9_3_1_5-64_32_32-20epochs-he_uniform-custom_relu.h5'
+    if use_saved:
+        # returns a compiled model
+        # identical to the previous one
+        model = keras.models.load_model(path_to_model, custom_objects={'psnr_L': psnr_L})
+    else:
+        print('SRCNN fitting...')
+        from keras import backend
+        backend.set_image_dim_ordering('th')
+
+        # TODO kerner_initializer='he_uniform'
+
+        # f_1-f_2-f_3
+        # 9-1-5
+        # 9-3-5
+        # 9-5-5
+        # 9-1-1-5
+        # 9-3-1-5
+        # 9-5-1-5
+
+        # 64, 2 | 9, 3, 1, 5 | 32, 16, 16 | [24.4]
+
+        batch_size = 64  # 128  # in each iteration we consider 128 training examples at once
+        num_epochs = 200
+        f_1, f_2, f_2_2, f_3 = 9, 3, 1, 5  # 9, 3, 1, 5 (32, 16, 16) [24.4]
+        n_1, n_2, n_2_2 = 64, 32, 32  # 32, 16, 16 # 64, 32, 32  #
+
+        inp = Input(shape=(c, height_X_train, width_X_train))
+
+        # inp_norm = BatchNormalization(axis=1)(inp)
+
+        conv_1 = Conv2D(n_1, (f_1, f_1), padding='valid', activation='relu', kernel_regularizer=l2(l2_lambda),
+                        kernel_initializer='he_uniform')(inp)
+
+        # conv_1 = BatchNormalization(axis=1)(conv_1)
+
+        conv_2 = Conv2D(n_2, (f_2, f_2), padding='valid', activation='relu', kernel_regularizer=l2(l2_lambda),
+                        kernel_initializer='he_uniform')(conv_1)
+
+        conv_2 = Conv2D(n_2_2, (f_2_2, f_2_2), padding='valid', activation='relu',
+                        kernel_regularizer=l2(l2_lambda),
+                        kernel_initializer='he_uniform')(  # custom_relu
+            conv_2)
+
+        # conv_2 = BatchNormalization(axis=1)(conv_2)
+
+        # conv_3 = Conv2D(c, (f_3, f_3), padding='same', activation=custom_relu, kernel_regularizer=l2(l2_lambda),
+        #                 kernel_constraint=max_norm(1.0))(conv_2)
+        conv_3 = Conv2D(c, (f_3, f_3), padding='valid', activation=custom_relu,
+                        kernel_regularizer=l2(l2_lambda), )(
+            conv_2)
+        # kernel_constraint=max_norm(1.0))(conv_2)
+
+        # conv_1 = Conv2D(n_1, (f_1, f_1), padding='same', activation='relu')(inp)#, kernel_regularizer=l2(l2_lambda))(inp)
+        #
+        # # conv_1 = BatchNormalization(axis=1)(conv_1)
+        #
+        # conv_2 = Conv2D(n_2, (f_2, f_2), padding='same', activation='relu')(conv_1)#, kernel_regularizer=l2(l2_lambda))(conv_1)
+        #
+        # conv_3 = Conv2D(c, (f_3, f_3), padding='same', activation='relu')(conv_2)#, kernel_regularizer=l2(l2_lambda))(conv_2)
+
+        # conv_1 = Conv3D(n_1, (c, f_1, f_1), activation='relu', input_shape=(c, height_X_train, width_X_train))
+
+        # conv_1 = Conv3D(n_1, (c, f_1, f_1), activation='relu')(inp)
+        #
+        # conv_2 = Conv3D(n_2, (n_1, f_2, f_2), activation='relu')(conv_1)
+        #
+        # conv_3 = Conv3D(c, (n_2, f_3, f_3), activation='relu')(conv_2)
+        #
+        out = conv_3
+
+        # creating model
+        model = Model(inputs=inp, outputs=out)
+
+        from keras.utils import plot_model
+        plot_model(model, to_file='results/' + dataset_name + '/model/SRCNN-model.png', show_shapes=True,
+                   show_layer_names=True, rankdir='TB')
+        plot_model(model, to_file='results/' + dataset_name + '/model/SRCNN-model.svg', show_shapes=True,
+                   show_layer_names=True, rankdir='TB')
+
+        # keras.optimizers.Nadam(lr=0.002, beta_1=0.9, beta_2=0.999, epsilon=1e-08, schedule_decay=0.004, decay=? 1e-6,
+        # momentum=? 0.9, nesterov=True)
+        nadam = keras.optimizers.Nadam()  # lr=0.002, clipnorm=1.0, clipvalue=1.0)  # clipvalue=0.5 [-0.5, 0.5]
+
+        model.compile(loss='mean_squared_error',
+                      optimizer=nadam,  # 'nadam',
+                      metrics=['accuracy',
+                               # M.mean_absolute_error,
+                               # M.categorical_accuracy,
+                               # M.binary_accuracy,
+                               # M.top_k_categorical_accuracy,
+                               # M.mean_squared_logarithmic_error, # +++
+                               M.mean_squared_error,
+                               # mse_L
+                               # ssim_3_channels,
+                               psnr_3_channels
+                               ])
+        # #, psnr_3_channels])
+
+        print(model.summary())
+
+        train_result = model.fit(X_train, Y_train,  # Train the model using the training set...
+                                 batch_size=batch_size,  # nb_epoch=num_epochs, verbose=0,
+                                 epochs=num_epochs,
+                                 verbose=1,
+                                 validation_split=0.0,  # ...holding out 10% of the data for validation
+                                 callbacks=[
+                                     psnr_3_callback,
+                                     # ssim_3_callback,
+                                     min_max_callback,
+                                 ])
+
+        print_train_result(train_result)
+
+        # exit()
+        # saving the model
+        # path = 'models/srcnn-cifar10-20000-9_3_1_5-64_32_32-20epochs-he_uniform-custom_relu.h5'
+
+        # print('saving model to ' + path_to_model + '...')
+        # model.save(path_to_model)
+        # print('model ' + path_to_model + ' saved')
+
+        # creates a HDF5 file 'models/dense-improved.h5'
+        # del model  # deletes the existing model
+
+    # getting results
+    test_result = model.evaluate(X_test, Y_test, verbose=1)  # Evaluate the trained model on the test set
+    print_test_result(test_result)
+
+    # making plot
+    if not use_saved:
+        plot_results(train_result, test_result, dataset_name)
+
+    print('PSNR history :', psnr_3_callback.history)
+    print('PSNR epoch history : ', psnr_3_callback.epoch_history)
+
+    if not use_rgb_dataset:
+        print('SSIM history :', ssim_3_callback.history)
+        print('SSIM epoch history : ', ssim_3_callback.epoch_history)
+
+    print('MIN-MAX history :', min_max_callback.history)
+    print('MIN-MAX epoch history : ', min_max_callback.epoch_history)
+
+    prediction = model.predict(X_test, batch_size=batch_size, verbose=1)
+    print(model.summary())
+
+    from keras.backend import clear_session
+    clear_session()
+
+    normalise_prediction = False
+    if normalise_prediction:
+        prediction = normalise_ndarrrays(prediction)
+
+    show_images = False
+    for i in range(10):
+        print()
+        # PREDICTION IMAGE
+        print('prediction image ' + str(i) + ' :')
+
+        # prediction[0].resize((height_Y_test, width_Y_test))
+        if use_rgb_dataset:
+            prediction.resize((num_Y_test, height_Y_test, width_Y_test, depth))
+        else:
+            prediction.resize((num_Y_test, height_Y_test, width_Y_test))
+        prediction = np.rint(prediction * 255).astype('uint8')
+        # print(prediction[0])
+        print_ndarray_info(prediction)  # reshape((3, 4)) => a ; resize((2,6)) => on place
+        print_ndarray_info(prediction[i])
+
+        from image_handler import get_image
+        if use_rgb_dataset:
+            prediction_image = get_image(prediction[i], mode='RGB')
+        else:
+            prediction_image = get_image(prediction[i], mode='L')
+        if show_images:
+            prediction_image.show(title='Prediction 28')
+        prediction_image.save('results/' + dataset_name + '/test/' + str(i) + '_prediction.png')
+
+        # ZOOMED OUT IMAGE
+        print('zoomed out image ' + str(i) + ':')
+
+        if use_rgb_dataset:
+            X_test.resize((num_X_test, height_X_test, width_X_test, depth))
+        else:
+            X_test.resize((num_X_test, height_X_test, width_X_test))
+        X_test = np.rint(X_test * 255).astype('uint8')
+        print_ndarray_info(X_test)
+        print_ndarray_info(X_test[i])
+
+        if use_rgb_dataset:
+            zoomed_out_image = get_image(X_test[i], mode='RGB')
+        else:
+            zoomed_out_image = get_image(X_test[i], mode='L')
+        # zoomed_out_image.show(title='Zoomed out 14')
+
+        # ORIGINAL IMAGE
+        print('original image ' + str(i) + ':')
+
+        if use_rgb_dataset:
+            Y_test.resize((num_Y_test, height_Y_test, width_Y_test, depth))
+        else:
+            Y_test.resize((num_Y_test, height_Y_test, width_Y_test))
+        Y_test = np.rint(Y_test * 255).astype('uint8')
+        print_ndarray_info(Y_test)
+        print_ndarray_info(Y_test[i])
+
+        if use_rgb_dataset:
+            original_image = get_image(Y_test[i], mode='RGB')
+        else:
+            original_image = get_image(Y_test[i], mode='L')
+        if show_images:
+            original_image.show(title='ORIGINAL IMAGE 28')
+        original_image.save('results/' + dataset_name + '/test/' + str(i) + '_original.png')
+
+        from image_handler import get_images_difference_metrics
+        psnr, ssim, mse = get_images_difference_metrics(original_image, prediction_image)
+        psnr, ssim, mse = round(psnr, 4), round(ssim, 4), round(mse, 4)
+        print('PSNR : ' + str(psnr), 'SSIM : ' + str(ssim), 'MSE : ' + str(mse), sep=', ')
+
+
+        # inp = Input(shape=(depth, height_X_train, width_X_train))
+        # # inp = Input(shape=(depth, height_X_train, width_X_train))
+        # inp_norm = BatchNormalization(axis=1)(inp)
+        # conv_1 = Conv2D(conv_depth, (kernel_size, kernel_size), padding='same', kernel_initializer='he_uniform',
+        #                 # 'he_uniform'
+        #                 kernel_regularizer=l2(l2_lambda), activation='relu')(inp_norm)  # 'relu' sigmoid
+        # conv_1 = BatchNormalization(axis=1)(conv_1)
+        # conv_2 = Conv2D(conv_depth, (kernel_size, kernel_size), padding='same', kernel_initializer='he_uniform',
+        #                 # 'he_uniform',
+        #                 kernel_regularizer=l2(l2_lambda), activation='relu')(conv_1)  # 'relu'
+        # pool_1 = MaxPooling2D(pool_size=(pool_size, pool_size))(conv_2)
+        # drop_1 = Dropout(drop_prob_1)(pool_1)
+        # flat = Flatten()(drop_1)
+        # # hidden = Dense(hidden_size, kernel_initializer='glorot_uniform', kernel_regularizer=l2(l2_lambda), activation='relu')(
+        # #     flat)
+        # hidden = Dense(hidden_size, kernel_initializer='he_uniform', kernel_regularizer=l2(l2_lambda), activation='relu')(
+        #     flat)
+        # hidden = BatchNormalization(axis=1)(hidden)
+        # drop_2 = Dropout(drop_prob_2)(hidden)
+        # out = Dense(height_Y_train * width_Y_train, kernel_initializer='he_uniform', kernel_regularizer=l2(l2_lambda),
+        #             activation='relu')(
+        #     drop_2)  # activation='relu'
+        # out = Dense(10, init='glorot_uniform', W_regularizer=l2(l2_lambda), activation='relu')(inp)  # (hidden)  # activation='relu'
+
+        # hidden1 = Dense(hidden_size, activation='relu')(inp_norm)
+        # hidden2 = Dense(hidden_size, activation='relu')(hidden1)
+        # hidden3 = Dense(hidden_size, activation='tanh')(hidden2)
+        # out = Dense(height_Y_train * width_Y_train, activation='sigmoid')(hidden3)  # activation='relu'
+        # https://keras.io/activations/
+        # activation : relu, elu
+
+        # model = Model(inputs=inp, outputs=out)
+
+
+def fit_conv_improved_tf_dim_ordering():
+    print('SRCNN tf running...')
+
+    from keras.layers import Input, Conv1D, Conv2D, Conv3D
+    from keras.models import Model
+    from keras.layers.normalization import BatchNormalization  # batch normalisation
+    from keras.regularizers import l2  # L2-regularisation
+    from keras.constraints import min_max_norm, max_norm
+    from keras.activations import relu
+
+    f_1 = 9
+    f_2 = 1
+    f_3 = 5
+    n_1 = 64
+    n_2 = 32
+    c = 1
+
+    batch_size = 64  # 128  # in each iteration we consider 128 training examples at once
+    num_epochs = 2  # we iterate twenty times over the entire training set
+    kernel_size = 3  # f_1, f_2, f_3
+    conv_depth = 32  # n_1, n_2
+    depth = 1  # c
+    l2_lambda = 0.0001
+
+    use_rgb_dataset = True
+    if use_rgb_dataset:
+        depth = c = 3
+        # (X_train, Y_train), (X_test, Y_test) = get_srcnn_rgb_mnist_dataset_part(train_part=0.1, test_part=0.1)
+        # (X_train, Y_train), (X_test, Y_test) = get_srcnn_rgb_cifar10_dataset_part(train_part=1, test_part=1)
+        # (X_train, Y_train), (X_test, Y_test) = get_srcnn_rgb_cifar10_20000_dataset_part(train_part=0.01, test_part=0.1)
+        # dataset_name = 'CIFAR-10 20000'
+        # (X_train, Y_train), (X_test, Y_test) = get_pasadena_dataset_part(train_part=0.5, test_part=0.5)
+        # (X_train, Y_train), (X_test, Y_test) = get_hundred_dataset_part(train_part=1, test_part=1)
+        # dataset_name = 'HUNDRED 40'
+        (X_train, Y_train), (X_test, Y_test) = get_100_86_dataset_part(train_part=1, test_part=1)
+        dataset_name = '100-86 40'
+
+        num_X_train, height_X_train, width_X_train, _ = X_train.shape
+        num_X_test, height_X_test, width_X_test, _ = X_test.shape
+        print_shape('X', X_train, X_test)
+
+        num_Y_train, height_Y_train, width_Y_train, _ = Y_train.shape
+        num_Y_test, height_Y_test, width_Y_test, _ = Y_test.shape
+        print_shape('Y', Y_train, Y_test)
+
+        print('')
+    else:
+        depth = c = 1
+        (X_train, Y_train), (X_test, Y_test) = get_srcnn_mnist_dataset_part(train_part=0.1, test_part=1)
+
+        num_X_train, height_X_train, width_X_train = X_train.shape
+        num_X_test, height_X_test, width_X_test = X_test.shape
+        print_shape('X', X_train, X_test)
+
+        num_Y_train, height_Y_train, width_Y_train = Y_train.shape
+        num_Y_test, height_Y_test, width_Y_test = Y_test.shape
+        print_shape('Y', Y_train, Y_test)
+    # print(np.max(X_train), np.max(Y_train))
+    # print(np.max(X_test), np.max(Y_test))
+
+    # K.set_floatx('float64')
+    dataset_type = 'float32'
+    # print(K.floatx())
+
+    X_train = X_train.astype(dataset_type)
+    X_test = X_test.astype(dataset_type)
+    Y_train = Y_train.astype(dataset_type)
+    Y_test = Y_test.astype(dataset_type)
+
+    X_train /= 255  # np.max(X_train)  # Normalise data to [0, 1] range
+    X_test /= 255  # np.max(X_test)  # Normalise data ti [0, 1] range
+    Y_train /= 255  # np.max(Y_train)  # Normalise data to [0, 1] range
+    Y_test /= 255  # np.max(Y_test)  # Normalise data to [0, 1] range
+
+    # print(X_train[0])
+    # print(X_train.shape)
+    # exit()
+    reshape_dataset = False
+    if reshape_dataset:
+        X_train = X_train.reshape(num_X_train, depth, height_X_train, width_X_train)
+        X_test = X_test.reshape(num_X_test, depth, height_X_test, width_X_test)
+        Y_train = Y_train.reshape(num_Y_train, depth, height_Y_train,
+                                  width_Y_train)  # , height_Y_train * width_Y_train)
+        Y_test = Y_test.reshape(num_Y_test, depth, height_Y_test,
+                                width_Y_test)  # , height_Y_test * width_Y_test)
+
+    # print(np.max(X_train), np.max(Y_train))
+    # print(np.max(X_test), np.max(Y_test))
+    # making PSNR metric
+    psnr_3_callback = metrics.MetricsCallbackPSNR(X=(X_train, X_test), Y=(Y_train, Y_test),
+                                                  batch_size=batch_size)
+    min_max_callback = metrics.MetricsCallbackMinMax(X=(X_train, X_test), Y=(Y_train, Y_test),
+                                                     batch_size=batch_size)
+    if not use_rgb_dataset:
+        ssim_3_callback = metrics.MetricsCallbackSSIM(X=(X_train, X_test), Y=(Y_train, Y_test),
+                                                      batch_size=batch_size,
+                                                      mode='L')
+
+    use_saved = False
+    # path_to_model = 'models/srcnn-cifar10-20000-9_3_1_5-64_32_32-20epochs-he_uniform-custom_relu.h5'
+    path_to_model = 'results/' + dataset_name + '/model/' + \
+                    'srcnn-cifar10-20000-9_3_1_5-64_32_32-20epochs-he_uniform-custom_relu.h5'
+    if use_saved:
+        # returns a compiled model
+        # identical to the previous one
+        model = keras.models.load_model(path_to_model, custom_objects={'psnr_L': psnr_L})
+    else:
+        print('SRCNN fitting...')
+        from keras import backend
+        # backend.set_image_dim_ordering('tf')
+
+        # TODO kerner_initializer='he_uniform'
+
+        # f_1-f_2-f_3
+        # 9-1-5
+        # 9-3-5
+        # 9-5-5
+        # 9-1-1-5
+        # 9-3-1-5
+        # 9-5-1-5
+
+        # 64, 2 | 9, 3, 1, 5 | 32, 16, 16 | [24.4]
+
+        batch_size = 64  # 128  # in each iteration we consider 128 training examples at once
+        num_epochs = 200
+        f_1, f_2, f_2_2, f_3 = 9, 3, 1, 5  # 9, 3, 1, 5 (32, 16, 16) [24.4]
+        n_1, n_2, n_2_2 = 64, 32, 32  # 32, 16, 16 # 64, 32, 32  #
+
+        inp = Input(shape=(height_X_train, width_X_train, c))
+
+        # inp_norm = BatchNormalization(axis=1)(inp)
+
+        conv_1 = Conv2D(n_1, (f_1, f_1), padding='valid', activation='relu', kernel_regularizer=l2(l2_lambda),
+                        kernel_initializer='he_uniform')(inp)
+
+        # conv_1 = BatchNormalization(axis=1)(conv_1)
+
+        conv_2 = Conv2D(n_2, (f_2, f_2), padding='valid', activation='relu', kernel_regularizer=l2(l2_lambda),
+                        kernel_initializer='he_uniform')(conv_1)
+
+        conv_2 = Conv2D(n_2_2, (f_2_2, f_2_2), padding='valid', activation='relu',
+                        kernel_regularizer=l2(l2_lambda),
+                        kernel_initializer='he_uniform')(  # custom_relu
+            conv_2)
+
+        # conv_2 = BatchNormalization(axis=1)(conv_2)
+
+        # conv_3 = Conv2D(c, (f_3, f_3), padding='same', activation=custom_relu, kernel_regularizer=l2(l2_lambda),
+        #                 kernel_constraint=max_norm(1.0))(conv_2)
+        conv_3 = Conv2D(c, (f_3, f_3), padding='valid', activation=custom_relu,
+                        kernel_regularizer=l2(l2_lambda), )(
+            conv_2)
+        # kernel_constraint=max_norm(1.0))(conv_2)
+
+        # conv_1 = Conv2D(n_1, (f_1, f_1), padding='same', activation='relu')(inp)#, kernel_regularizer=l2(l2_lambda))(inp)
+        #
+        # # conv_1 = BatchNormalization(axis=1)(conv_1)
+        #
+        # conv_2 = Conv2D(n_2, (f_2, f_2), padding='same', activation='relu')(conv_1)#, kernel_regularizer=l2(l2_lambda))(conv_1)
+        #
+        # conv_3 = Conv2D(c, (f_3, f_3), padding='same', activation='relu')(conv_2)#, kernel_regularizer=l2(l2_lambda))(conv_2)
+
+        # conv_1 = Conv3D(n_1, (c, f_1, f_1), activation='relu', input_shape=(c, height_X_train, width_X_train))
+
+        # conv_1 = Conv3D(n_1, (c, f_1, f_1), activation='relu')(inp)
+        #
+        # conv_2 = Conv3D(n_2, (n_1, f_2, f_2), activation='relu')(conv_1)
+        #
+        # conv_3 = Conv3D(c, (n_2, f_3, f_3), activation='relu')(conv_2)
+        #
+        out = conv_3
+
+        # creating model
+        model = Model(inputs=inp, outputs=out)
+
+        from keras.utils import plot_model
+        plot_model(model, to_file='results/' + dataset_name + '/model/SRCNN-model.png', show_shapes=True,
+                   show_layer_names=True, rankdir='TB')
+        plot_model(model, to_file='results/' + dataset_name + '/model/SRCNN-model.svg', show_shapes=True,
+                   show_layer_names=True, rankdir='TB')
+
+        # keras.optimizers.Nadam(lr=0.002, beta_1=0.9, beta_2=0.999, epsilon=1e-08, schedule_decay=0.004, decay=? 1e-6,
+        # momentum=? 0.9, nesterov=True)
+        nadam = keras.optimizers.Nadam()  # lr=0.002, clipnorm=1.0, clipvalue=1.0)  # clipvalue=0.5 [-0.5, 0.5]
+
+        model.compile(loss='mean_squared_error',
+                      optimizer=nadam,  # 'nadam',
+                      metrics=['accuracy',
+                               # M.mean_absolute_error,
+                               # M.categorical_accuracy,
+                               # M.binary_accuracy,
+                               # M.top_k_categorical_accuracy,
+                               # M.mean_squared_logarithmic_error, # +++
+                               M.mean_squared_error,
+                               # mse_L
+                               # ssim_3_channels,
+                               psnr_3_channels
+                               ])
+        # #, psnr_3_channels])
+
+        print(model.summary())
+
+        train_result = model.fit(X_train, Y_train,  # Train the model using the training set...
+                                 batch_size=batch_size,  # nb_epoch=num_epochs, verbose=0,
+                                 epochs=num_epochs,
+                                 verbose=1,
+                                 validation_split=0.0,  # ...holding out 10% of the data for validation
+                                 callbacks=[
+                                     psnr_3_callback,
+                                     # ssim_3_callback,
+                                     min_max_callback,
+                                 ])
+
+        print_train_result(train_result)
+
+        # exit()
+        # saving the model
+        # path = 'models/srcnn-cifar10-20000-9_3_1_5-64_32_32-20epochs-he_uniform-custom_relu.h5'
+
+        # print('saving model to ' + path_to_model + '...')
+        # model.save(path_to_model)
+        # print('model ' + path_to_model + ' saved')
+
+        # creates a HDF5 file 'models/dense-improved.h5'
+        # del model  # deletes the existing model
+
+    # getting results
+    test_result = model.evaluate(X_test, Y_test, verbose=1)  # Evaluate the trained model on the test set
+    print_test_result(test_result)
+
+    # making plot
+    if not use_saved:
+        plot_results(train_result, test_result, dataset_name)
+
+    print('PSNR history :', psnr_3_callback.history)
+    print('PSNR epoch history : ', psnr_3_callback.epoch_history)
+
+    if not use_rgb_dataset:
+        print('SSIM history :', ssim_3_callback.history)
+        print('SSIM epoch history : ', ssim_3_callback.epoch_history)
+
+    print('MIN-MAX history :', min_max_callback.history)
+    print('MIN-MAX epoch history : ', min_max_callback.epoch_history)
+
+    prediction = model.predict(X_test, batch_size=batch_size, verbose=1)
+    print(model.summary())
+
+    from keras.backend import clear_session
+    clear_session()
+
+    normalise_prediction = False
     if normalise_prediction:
         prediction = normalise_ndarrrays(prediction)
 
@@ -1140,7 +2258,10 @@ if __name__ == '__main__':
     # fit_dense_improved()  # psnr_L : [adam] 21.6834 (22.2798), [nadam] 21.8307 (22.6945)
     # fit_conv()  # psnr_L : [10000] 14.6536 (16.3086) [54000] 19.6423 (18.1249)
     #
-    fit_conv_improved()
+    # fit_conv_improved()
+    # fit_conv_srcnn()
+    # fit_conv_improved_tf_dim_ordering()
+    fit_conv_srcnn_tf()
 
     print('SRCNN running lasted', convert_handled_time_range_to_str(handle_time_range(time.time() - begin_time)))
 
